@@ -56,21 +56,13 @@ class AuctionTest(unittest.TestCase):
         self.assertEqual(auction_2, live_data["auctions"][auction.realm_id][auction.id])
 
 
-    def test_insert(self, sold_data):
+
+class SoldAuctionTest(unittest.TestCase):
+    def test_init(self):
         pass
 
-
-    def test_insertData(self, insert_data):
+    def test_insert(self):
         pass
-
-
-    def test_updateAuctions(self, database, update_data):
-        pass
-
-
-    def test_setAuctionData(auction_data):
-        pass
-
 
 
 if __name__ == '__main__':
