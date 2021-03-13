@@ -3,24 +3,42 @@ import datetime
 import random
 
 def setTimePosted(test=False):
-  date = datetime.datetime.now().date()
-  hour = datetime.datetime.now().hour
+  now = datetime.datetime.now()
+  year = now.year
+  month = now.month
+  day = now.day
   if not test:
-      minute = random.randrange(0, datetime.datetime.now().minute)
+      hour = datetime.datetime.now().hour
+      minute = random.randrange(0, datetime.datetime.now().minute+1)
       second = random.randrange(0, 60)
-      thousand = random.randrange(0, 1000)
+      micro = random.randrange(0, 1000)
   else:
       hour = 12
       minute = 30
       second = 30
-      thousand = 500
+      micro = 500
 
-  time_posted = f"{date} {hour}:{minute}:{second}.{thousand}"
-  return time_posted
+  time_posted = datetime.datetime(year, month, day, hour, minute, second, micro*1000)
+  return time_posted.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+
+def setTimeSold():
+    now = datetime.datetime.now()
+    year = now.year
+    month = now.month
+    day = now.day
+    hour = now.hour
+    minute = random.randrange(0, now.minute + 1)
+    second = random.randrange(0, now.second + 1)
+    micro = random.randrange(0, 1000) * 1000
+
+    time_sold = datetime.datetime(year, month, day, hour, minute, second, micro) - datetime.timedelta(hours=1)
+
+    return time_sold.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
 
 
-def setAuctionData(realm_id, auction_data, live_data, previous_auctions, test=False):
+def setAuctionData(realm_id, auction_data, live_data, insert_data, update_data, previous_auctions):
   """Setting auction data from getAuctionData response. Takes in 4 arguments:
       :arg realm_id: int,
       :arg auction_data: dict,
@@ -28,9 +46,6 @@ def setAuctionData(realm_id, auction_data, live_data, previous_auctions, test=Fa
       :arg previous_auctions: dict"""
   from Wow_Analytics.scripts.auctions import Auction
 
-  insert_data = {}
-  update_data = {}
-  sold_data = {}
   auctions = []
   for auction in auction_data:
       auction_id = auction["id"]
@@ -85,9 +100,11 @@ def setAuctionData(realm_id, auction_data, live_data, previous_auctions, test=Fa
           buyout = -1
 
       args = (realm_id, auction_id, item_id, pet, quantity, unit_price, time_left, bid, buyout, time_posted, last_updated)
-      auction = Auction(live_data, previous_auctions, insert_data, update_data, sold_data, *args)
-      if test: auctions.append(auction)
-  if test: return auctions
+      auction = Auction(live_data, previous_auctions, insert_data, update_data, *args)
+      # for testing purposes
+      auctions.append(auction)
+  # for testing purposes
+  return auctions
 
 
 def updateAuctions(database, update_data):
@@ -129,39 +146,39 @@ def insertAuctions(database, insert_data, previous_auctions):
         :arg insert_data: dict,
         :arg previous_auctions: dict"""
 
-    # inserting new auctions to auctionhouses
+    # inserting new auctions into auctionhouses
     for realm_id in insert_data["auctions"]:
         # creating and executing auctions_query
         if len(insert_data["auctions"][realm_id]) > 0:
             auctions_query = "INSERT into auctionhouses(realm_id, auction_id, item_id, pet_id, quantity, unit_price, time_left, bid, buyout, time_posted, last_updated) values\n"
             for auction in insert_data["auctions"][realm_id]:
-                auction_values = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s),\n" %(realm_id, auction.id, auction.item_id, auction.pet_id, auction.quantity, auction.unit_price, f'"{auction.time_left}"', auction.bid, auction.buyout, f'"{auction.time_posted}"', f'"{auction.last_updated}"')
+                if auction.item_id == 82800: pet_id = auction.pet_id["id"]
+                else: pet_id = 0
+                auction_values = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s),\n" %(realm_id, auction.id, auction.item_id, pet_id, auction.quantity, auction.unit_price, f'"{auction.time_left}"', auction.bid, auction.buyout, f'"{auction.time_posted}"', f'"{auction.last_updated}"')
                 auctions_query += auction_values
             auctions_query = auctions_query[:-2] + ";"
             database.write(auctions_query)
 
-    # inserting new partialy sold auctions to soldauctions
+    # adding fully sold auctions to insert_data
+    for realm_id in previous_auctions:
+        if len(previous_auctions[realm_id]) > 0:
+            from Wow_Analytics.scripts.auctions import SoldAuction
+            for auction_id in previous_auctions[realm_id]:
+                auction = previous_auctions[realm_id][auction_id]
+                args = (realm_id, auction.id, auction.item_id, auction.pet_id, auction.quantity, auction.unit_price, auction.time_left, auction.bid, auction.buyout, auction.time_posted, False)
+                sold_auction = SoldAuction(insert_data, *args)
+                insert_data["sold_auctions"][realm_id].append(sold_auction)
+
+    # inserting new sold auctions into soldauctions
     for realm_id in insert_data["sold_auctions"]:
-        # creating and executing partialy sold sold_auctions_query
         if len(insert_data["sold_auctions"][realm_id]) > 0:
             sold_auctions_query = "INSERT into soldauctions(realm_id, auction_id, item_id, pet_id, quantity, unit_price, time_left, bid, buyout, time_sold, partial) values\n"
             for auction in insert_data["sold_auctions"][realm_id]:
-                auction_values = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s),\n" %(realm_id, auction.id, auction.item_id, auction.pet_id, auction.quantity, auction.unit_price, f'"{auction.time_left}"', auction.bid, auction.buyout, f'"{auction.time_sold}"', auction.partial)
+                if auction.item_id == 82800: pet_id = auction.pet_id["id"]
+                else: pet_id = 0
+                auction_values = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s),\n" %(realm_id, auction.id, auction.item_id, pet_id, auction.quantity, auction.unit_price, f'"{auction.time_left}"', auction.bid, auction.buyout, f'"{auction.time_sold}"', auction.partial)
                 sold_auctions_query += auction_values
             sold_auctions_query = sold_auctions_query[:-2] + ";"
-            print("****************************")
             print(sold_auctions_query)
+            quit()
             database.write(sold_auctions_query)
-
-    # inserting new completely sold auctions to soldauctions
-    moderate_pricing = auction.unit_price < 9999999.9999
-    sold_auctions_query = "INSERT INTO soldauctions(realm_id, auction_id, item_id, pet_id, quantity, unit_price, time_left, bid, buyout, time_sold, partial) VALUES\n"
-    for realm_id in previous_auctions:
-        # creating and executing fully sold sold_auctions_query
-        for auction in previous_auctions[realm_id]:
-            if auction.time_left != "SHORT" and moderate_pricing:
-                auction_values = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s),\n" %(realm_id, auction.id, auction.item_id, auction.pet_id, auction.quantity, auction.unit_price, f'"{auction.time_left}"', auction.bid, auction.buyout, f'"{auction.time_sold}"')
-                sold_auctions_query += auction_values
-            else: del previous_auctions[realm_id][auction.id]
-        sold_auctions_query = sold_auctions_query[:-2] + ";"
-        database.write(sold_auctions_query)

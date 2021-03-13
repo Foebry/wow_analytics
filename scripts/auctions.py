@@ -1,5 +1,6 @@
 """auctions functionality"""
 from datetime import datetime
+from Wow_Analytics.scripts.functions import setTimePosted, setTimeSold
 import datetime
 import random
 
@@ -7,7 +8,7 @@ import random
 
 class Auction():
     """docstring"""
-    def __init__(self, live_data, previous_auctions, insert_data, update_data, sold_data, *args, **kwargs):
+    def __init__(self, live_data, previous_auctions, insert_data, update_data, *args, **kwargs):
         """Auction constructor. Takes in 7 args. Always needs 6 arguments, so either args or kwargs need to be given:
             :arg live_data: dict,
             :arg previous_auctions: dict,
@@ -30,8 +31,8 @@ class Auction():
             self.time_posted = kwargs["time_posted"]
             self.last_updated = kwargs["last_updated"]
         else:
-            self.id = args[1]
             self.realm_id = args[0]
+            self.id = args[1]
             self.item_id = args[2]
             self.pet_id = args[3]
             self.quantity = args[4]
@@ -39,19 +40,25 @@ class Auction():
             self.time_left = args[6]
             self.bid = args[7]
             self.buyout = args[8]
-            self.time_posted = args[9]
-            self.last_updated = args[10]
+            self.time_posted = setTimePosted()
+            self.last_updated = self.time_posted
 
-        # If auction_id is not yet in live_auctions -> add it to live_auctions
-        if self.id not in live_data["auctions"][1096]:
-            live_data["auctions"][1096][self.id] = self
+        # If auction_id is not yet in previous_auctions -> add it to live_auctions
+        if self.id not in previous_auctions[self.realm_id]:
+            live_data["auctions"][self.realm_id][self.id] = self
 
             # setting auction to be inserted
-            insert_data["auctions"] = {}
-            insert_data["auctions"][self.realm_id] = {}
-            insert_data["auctions"][self.realm_id][self.id] = self
-        # if auction_id is already in live_auctions -> update live_auctions
-        else: self.Update(live_data, previous_auctions, update_data, insert_data, live_data["auctions"][self.realm_id][self.id], self)
+            if "auctions" in insert_data:
+                if self.realm_id in insert_data["auctions"]:
+                    insert_data["auctions"][self.realm_id].append(self)
+                else:
+                    insert_data["auctions"][self.realm_id] = [self]
+            else:
+                insert_data["auctions"] = {}
+                insert_data["auctions"][self.realm_id] = [self]
+
+        # if auction_id is already in previous_auctions -> insert into live_auctions
+        else: self.update(live_data, previous_auctions, update_data, insert_data, live_data["auctions"][self.realm_id][self.id], self)
 
     @staticmethod
     def update(live_data, previous_auctions, update_data, insert_data, existing, new):
@@ -64,35 +71,31 @@ class Auction():
         bid = existing.bid * sold_quantity
         time_sold = f"{datetime.datetime.now().date()} {datetime.datetime.now().hour-1}:{random.randrange(0,60)}:{random.randrange(0, 60)}.{random.randrange(0, 1000)}"
 
-        # create and insert sold_auction
-        args = (new.realm_id, new.id, new.item_id, new.pet_id, sold_quantity, new.unit_price, new.time_left, bid, buyout, time_sold, True)
-        sold_auction = SoldAuction(*args)
-        sold_auction.Insert(insert_data)
+        if sold_quantity > 0:
+            # create sold_auction
+            args = (new.realm_id, new.id, new.item_id, new.pet_id, sold_quantity, new.unit_price, new.time_left, bid, buyout, new.time_posted, True)
+            sold_auction = SoldAuction(insert_data, *args)
 
-        # replace auction in live_data
+        # remove auction_id from previous_auctions
+        del previous_auctions[new.realm_id][new.id]
+
+        # add to live_data
         live_data["auctions"][new.realm_id][new.id] = new
 
         # adding auction to be updated
         if "auctions" in update_data:
-            if new.realm_id in update_data["auctions"]:
-                if new.id in update_data["auctions"][new.realm_id]: update_data["auctions"][new.realm_id][new.id] = new
-                else: update_data["auctions"][new.realm_id][new.id] = new
+            if new.realm_id in update_data["auctions"]: update_data["auctions"][new.realm_id].append(new)
             else:
-                update_data["auctions"][new.realm_id] = {}
-                update_data["auctions"][new.realm_id][new.id] = new
+                update_data["auctions"][new.realm_id] = [new]
         else:
             update_data["auctions"] = {}
-            update_data["auctions"][new.realm_id] = {}
-            update_data["auctions"][new.realm_id][new.id] = new
-
-        # checking if auction was in previous batch
-        if new.id in previous_auctions: del previous_auctions[new.realm_id][new.id]
+            update_data["auctions"][new.realm_id] = [new]
 
 
 
 class SoldAuction():
     """docstring"""
-    def __init__(self, *args):
+    def __init__(self, insert_data, *args):
         """Constructor for sold auctions. Takes in 1 argument:
             :arg *args: list"""
 
@@ -105,21 +108,31 @@ class SoldAuction():
         self.time_left = args[6]
         self.bid = args[7]
         self.buyout = args[8]
-        self.time_sold = args[9]
+        self.time_posted = args[9]
+        self.time_sold = setTimeSold()
         self.partial = args[10]
+        self.insert(insert_data)
 
-    def insert(self, sold_data):
+
+    def insert(self, insert_data):
         """updates sold_data. Takes in 1 argument:
             :arg sold_data: dict"""
 
-        if "sold_auctions" in insert_data:
-            if self.realm_id in insert_data["sold_auctions"]:
-                if self.id in sold_data["sold_auctions"][self.realm_id]: sold_data["sold_auctions"][self.realm_id][self.id].append(self)
-                else: sold_data["sold_auctions"][self.realm_id][self.id] = [self]
+        if self.partial:
+            # Of partial auctions we know 100% they were sold
+            if "sold_auctions" in insert_data:
+                if self.realm_id in insert_data["sold_auctions"]:
+                    insert_data["sold_auctions"][self.realm_id].append(self)
+                else: insert_data["sold_auctions"][self.realm_id] = [self]
             else:
-                sold_data["sold_auctions"][self.realm_id] = {}
-                sold_data["sold_auctions"][self.realm_id][self.id] = [self]
+                insert_data["sold_auctions"] = {}
+                insert_data["sold_auctions"][self.realm_id] = [self]
         else:
-            sold_data["sold_auctions"] = {}
-            sold_data["sold_auctions"][self.realm_id] = {}
-            sold_data["sold_auctions"][self.realm_id][self.id] = [self]
+            if not self.time_left == "SHORT":
+                if "sold_auctions" in insert_data:
+                    if self.realm_id in insert_data["sold_auctions"]:
+                        insert_data["sold_auctions"][self.realm_id].append(self)
+                    else: insert_data["sold_auctions"][self.realm_id] = [self]
+                else:
+                    insert_data["sold_auctions"] = {}
+                    insert_data["sold_auctions"][self.realm_id] = [self]
