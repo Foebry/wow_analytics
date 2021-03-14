@@ -77,6 +77,11 @@ class RequestTest(unittest.TestCase):
         self.assertEqual("VENDOR", response["source"]["type"])
         self.assertEqual("Vendor", response["source"]["name"]["en_US"])
 
+    def test_getMountIndex(self):
+        response = request.getMountIndex("Sky Golem")
+
+        self.assertEqual(522, response)
+
 
 
 if __name__ == '__main__':

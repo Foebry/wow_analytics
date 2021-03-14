@@ -80,3 +80,19 @@ class Request():
         elif response.status_code == 401:
             self.status_code = self.getAccesToken()
             self.getMountData(mount)
+
+    def getMountIndex(self, name):
+        """Getting index of mount."""
+        address = f"https://eu.api.blizzard.com/data/wow/mount/index?namespace=static-eu&locale=en_GB&access_token={self.access_token}"
+        response = requests.get(address)
+        if response.status_code == 200:
+            response = response.json()["mounts"]
+            for index in range(0, len(response)):
+                for key in response[index]:
+                    if key == "name" and response[index][key] == name:
+                        mount_id = response[index]["id"]
+                        return mount_id
+
+        elif response.status_code == 401:
+            self.status_code = self.getAccesToken()
+            self.getMountIndex(name)

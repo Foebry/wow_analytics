@@ -1,6 +1,7 @@
 """auctions functionality"""
 from datetime import datetime
 from Wow_Analytics.scripts.functions import setTimePosted, setTimeSold
+from Wow_Analytics.scripts.items import Item
 import datetime
 import random
 
@@ -30,6 +31,7 @@ class Auction():
             self.buyout = kwargs["buyout"]
             self.time_posted = kwargs["time_posted"]
             self.last_updated = kwargs["last_updated"]
+            # self.Item = kwargs["Item"]
         else:
             self.realm_id = args[0]
             self.id = args[1]
@@ -42,6 +44,31 @@ class Auction():
             self.buyout = args[8]
             self.time_posted = setTimePosted()
             self.last_updated = self.time_posted
+
+            # very 1st new pet
+            if self.item_id == 82800 and self.id not in live_data["items"]:
+                item = Item(request, self.id, self.pet_id)
+                live_data["items"][self.item_id] = {}
+                live_Data["items"][self.item_id][self.pet_id]["id"] = item
+                self.Item = item
+            # pet
+            elif self.item_id == 82800 and self.id in live_data["items"]:
+                # existing pet
+                if self.pet_id["id"] in live_data["items"][self.id]:
+                    self.Item = live_data["items"][self.id][self.pet_id["id"]]
+                # new pet
+                else:
+                    item = Item(request, self.id, self.pet_id)
+                    live_data["items"][self.id][self.pet_id["id"]] = item
+                    self.Item = item
+            # new item
+            elif not self.item_id == 82800 and self.id not in live_data["items"]:
+                item = Item(request, self.item_id)
+                live_data["items"] = item
+                self.Item = item
+            # existing item
+            else: self.Item = live_data["items"][self.item_id]
+
 
         # If auction_id is not yet in previous_auctions -> add it to live_auctions
         if self.id not in previous_auctions[self.realm_id]:
@@ -59,6 +86,7 @@ class Auction():
 
         # if auction_id is already in previous_auctions -> insert into live_auctions
         else: self.update(live_data, previous_auctions, update_data, insert_data, live_data["auctions"][self.realm_id][self.id], self)
+
 
     @staticmethod
     def update(live_data, previous_auctions, update_data, insert_data, existing, new):
@@ -115,7 +143,7 @@ class SoldAuction():
         self.insert(insert_data)
 
 
-    def insert(self, insert_data):
+    def insert(self, insert_data, update_data):
         """updates sold_data. Takes in 1 argument:
             :arg sold_data: dict"""
 
@@ -129,7 +157,8 @@ class SoldAuction():
                 insert_data["sold_auctions"] = {}
                 insert_data["sold_auctions"][self.realm_id] = [self]
         else:
-            if not self.time_left == "SHORT":
+            valid = self.time_left != "SHORT" and self.unit_price < 9999999.9999 and self.unit_price < 5*self.Item.mean_price
+            if valid:
                 if "sold_auctions" in insert_data:
                     if self.realm_id in insert_data["sold_auctions"]:
                         insert_data["sold_auctions"][self.realm_id].append(self)
@@ -137,3 +166,10 @@ class SoldAuction():
                 else:
                     insert_data["sold_auctions"] = {}
                     insert_data["sold_auctions"][self.realm_id] = [self]
+
+        self.Item.sold += self.quantity
+        self.Item.price = self.quantity * self.unit_price
+        temp_mean = self.price / self.quantity
+        if not temp_mean == self.Item.mean_price:
+            self.mean_price = temp_mean
+            self.Item.update(update_data)
