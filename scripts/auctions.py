@@ -64,16 +64,18 @@ class Auction():
     def update(live_data, previous_auctions, update_data, insert_data, existing, new):
         """Updating live_data, update_data dictionaries and possibly insert_data"""
 
-        # calculate sold_quantity
+        # calculate sold_quantity, new buyout of sold_quantity and bid of sold_quantity
         sold_quantity = existing.quantity - new.quantity
-        time_left = new.time_left
         buyout = existing.unit_price * sold_quantity
         bid = existing.bid * sold_quantity
-        time_sold = f"{datetime.datetime.now().date()} {datetime.datetime.now().hour-1}:{random.randrange(0,60)}:{random.randrange(0, 60)}.{random.randrange(0, 1000)}"
+
+        # new time_posted = existing time_posted
+        new.time_posted = existing.time_posted
+        new.last_updated = setTimePosted(posted=new.time_posted)
 
         if sold_quantity > 0:
             # create sold_auction
-            args = (new.realm_id, new.id, new.item_id, new.pet_id, sold_quantity, new.unit_price, new.time_left, bid, buyout, new.time_posted, True)
+            args = (new.realm_id, new.id, existing.item_id, new.pet_id, sold_quantity, new.unit_price, new.time_left, bid, buyout, new.time_posted, True)
             sold_auction = SoldAuction(insert_data, *args)
 
         # remove auction_id from previous_auctions
@@ -98,7 +100,6 @@ class SoldAuction():
     def __init__(self, insert_data, *args):
         """Constructor for sold auctions. Takes in 1 argument:
             :arg *args: list"""
-
         self.id = args[1]
         self.realm_id = args[0]
         self.item_id = args[2]
@@ -109,7 +110,7 @@ class SoldAuction():
         self.bid = args[7]
         self.buyout = args[8]
         self.time_posted = args[9]
-        self.time_sold = setTimeSold()
+        self.time_sold = setTimeSold(posted=self.time_posted)
         self.partial = args[10]
         self.insert(insert_data)
 
