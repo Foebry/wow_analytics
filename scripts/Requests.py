@@ -96,3 +96,11 @@ class Request():
         elif response.status_code == 401:
             self.status_code = self.getAccesToken()
             self.getMountIndex(name)
+
+    def getPetIndexes(self):
+        address = f"https://eu.api.blizzard.com/data/wow/pet/index?namespace=static-eu&locale=en_GB&access_token={self.access_token}"
+        response = requests.get(address)
+        if response.status_code == 200: return response.json()['pets']
+        elif response.status_code == 401:
+            self.status_code = self.getAccesToken()
+            self.getPetIndexes()
