@@ -33,13 +33,10 @@ class PetTest(unittest.TestCase):
                     {"pet_id":values[8][0], "name":values[8][1], "type":values[8][2], "faction":values[8][3], "source":values[8][4]},
                     {"pet_id":values[9][0], "name":values[9][1], "type":values[9][2], "faction":values[9][3], "source":values[9][4]},
                 ]
-        return {"ids":pet_ids, "values":values, "kwargs":kwargs}
+        return pet_ids, values, kwargs
 
     def test_init(self):
-        init = self.init()
-        ids = init["ids"]
-        values = init["values"]
-        kwargs = init["kwargs"]
+        ids, values, kwargs = self.init()
         insert_data = {}
         update_data = {}
 

@@ -34,13 +34,10 @@ class MountTest(unittest.TestCase):
                     {"mount_id":values[8][0], "name":values[8][1], "source":values[8][2], "faction":values[8][3]},
                     {"mount_id":values[9][0], "name":values[9][1], "source":values[9][2], "faction":values[9][3]},
                 ]
-        return {"ids":ids, "values":values, "kwargs":kwargs}
+        return ids, values, kwargs
 
     def test(self):
-        init = self.init()
-        ids = init["ids"]
-        values = init["values"]
-        kwargs = init["kwargs"]
+        ids, values, kwargs = self.init()
         insert_data = {}
         update_data = {}
 

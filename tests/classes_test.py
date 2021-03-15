@@ -47,13 +47,10 @@ class ClassTest(unittest.TestCase):
                     {"class_id":values[15][0], "name":values[15][1], "subclasses":values[15][2]},
                     {"class_id":values[16][0], "name":values[16][1], "subclasses":values[16][2]}
                 ]
-        return {"classes":classes, "values":values, "kwargs":kwargs}
+        return classes, values, kwargs
 
     def test_init(self):
-        init = self.init()
-        classes = init["classes"]
-        values = init["values"]
-        kwargs= init["kwargs"]
+        classes, values, kwargs = self.init()
         insert_data = {}
         update_data = {}
 
@@ -118,13 +115,10 @@ class SubclassTest(unittest.TestCase):
                     {"class_id":values[7][0], "subclass_id":values[7][1], "name":values[7][2]},
         ]
 
-        return {"values":values, "subclasses":subclasses, "kwargs":kwargs}
+        return subclasses, values, kwargs
 
     def test_init(self):
-        init = self.init()
-        values = init["values"]
-        subclasses = init["subclasses"]
-        kwargs = init["kwargs"]
+        subclasses, values, kwargs = self.init()
         insert_data = {}
         update_data = {}
 

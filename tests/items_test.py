@@ -30,14 +30,11 @@ class ItemTest(unittest.TestCase):
                   {"id":values[8][0], "pet":{"id":None}, "name":values[8][2], "quality":values[8][3], "level":values[8][4], "item_class":values[8][5], "item_subclass":values[8][6], "mean_price":values[8][7], "mount":{"id":None}, "type":None, "subtype":None, "sold":0, "price":0, "mean_price":0},
                   {"id":values[9][0], "pet":{"id":None}, "name":values[9][2], "quality":values[9][3], "level":values[9][4], "item_class":values[9][5], "item_subclass":values[9][6], "mean_price":values[9][7], "mount":{"id":None}, "type":None, "subtype":None, "sold":0, "price":0, "mean_price":0},
                   ]
-        return {"ids":ids, "values":values, "kwargs":kwargs}
+        return ids, values, kwargs
 
 
     def test_init(self):
-        init = self.init()
-        ids = init["ids"]
-        values = init["values"]
-        kwargs = init["kwargs"]
+        ids, values, kwargs = self.init()
         live_data = {"auctions":{1096:{}}, "items":{}, "classes":{}, "pets":{}, "mounts":{}}
         insert_data = {}
         update_data = {}

@@ -98,19 +98,13 @@ class FunctionTest(unittest.TestCase):
                     [1096, 15, 35, {"id":0}, 1, 9999999.9999, "MEDIUM", 0, 9999999.9999]
                    ]
 
-        return {"live":live_data, "data_1":auction_data_1, "values_1":values_1, "data_2":auction_data_2, "values_2":values_2, "previous":previous_auctions}
+        return live_data, previous_auctions, auction_data_1, values_1, auction_data_2, values_2
 
     @unittest.skip
     def test_setAuctionData(self):
-        init = self.init()
-        previous_auctions = init["previous"]
-        live_data = init["live"]
-        auction_data = init["data_1"]
-        values = init["values_1"]
+        live_data, previous_auctions, auction_data_1, values_1, auction_data_2, values_2 = self.init()
         insert_data = {}
         update_data = {}
-        values_2 = init["values_2"]
-        auction_data_2 = init["data_2"]
 
         # 1st set of auctions
         auctions = setAuctionData(1096, auction_data, live_data, insert_data, update_data, previous_auctions)
@@ -190,13 +184,8 @@ class FunctionTest(unittest.TestCase):
         self.assertEqual(14, len(update_data["auctions"][1096]))
 
     def test_insertAuctions(self):
-        init = self.init()
-        data_1 = init["data_1"]
-        data_2 = init["data_2"]
-        live_data = init["live"]
+        live_data, previous_auctions, auction_data_1, values_1, auction_data_2, values_2 = self.init()
         insert_data = {"auctions":{}, "sold_auctions":{}}
-        update_data = {}
-        previous_auctions = init["previous"]
 
         setAuctionData(1096, data_1, live_data, insert_data, update_data, previous_auctions)
         insertAuctions(database, insert_data, previous_auctions)
@@ -228,14 +217,9 @@ class FunctionTest(unittest.TestCase):
 
     @unittest.skip
     def test_updateAuctions(self):
-        init = self.init()
-        data_1 = init["data_1"]
-        data_2 = init["data_2"]
-        live_data = init["live"]
+        live_data, previous_auctions, auction_data_1, values_1, auction_data_2, values_2 = self.init()
         insert_data = {"auctions":{}, "sold_auctions":{}}
-        values_2 = init["values_2"]
         update_data = {}
-        previous_auctions = init["previous"]
 
         setAuctionData(1096, data_1, live_data, insert_data, update_data, previous_auctions)
         insertAuctions(database, insert_data, previous_auctions)
