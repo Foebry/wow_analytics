@@ -85,7 +85,7 @@ def setAuctionData(realm_id, auction_data, live_data, insert_data, update_data, 
     from Wow_Analytics.scripts.auctions import Auction
 
     auctions = []
-    for auction in auction_data[:1000]:
+    for auction in auction_data:
         auction_id = auction["id"]
         item_id = auction["item"]["id"]
         pet = {"id":0}
