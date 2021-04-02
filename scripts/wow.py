@@ -6,6 +6,7 @@ from Wow_Analytics.scripts.functions import *
 from Databases.scripts.SQL import SQL
 from Logger.Logger import *
 from configparser import ConfigParser
+
 import concurrent.futures
 import time
 
@@ -49,8 +50,8 @@ def main(realm):
             print("\nlive_items:", len(live_data["items"]))
             print("live_classes:", len(live_data["classes"]))
             # insert data & update data
-            insertData(db, insert_data, update_data, previous_auctions)
-            updateData(db, update_data)
+            insertData(db, insert_data, update_data, previous_auctions, realm.id, logger)
+            updateData(db, update_data, realm.id, logger)
             init(realm, live_data)
         # wait
         print("sleeping")
@@ -66,6 +67,7 @@ if __name__ == "__main__":
 
     for realm in realms:
         main(realm)
-        # except Exception as error: logger.write("error", error, type(error))
+        # except Exception: db.HandleError(db.connect(), Exception, None, logger)
+        # except Exception as error: logger.log(type(err), error)
     # with concurrent.futures.ThreadPoolExecutor() as exe:
     #     [exe.submit(main, realm) for realm in realms]

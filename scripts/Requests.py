@@ -31,7 +31,7 @@ class Request():
 
         # checking response
         if response.status_code == 200: return response.json()['access_token']
-        else: logger.write('error', f'{response.status_code} - response')
+        else: logger.log(f'{response.status_code} - response')
 
 
     def getAuctionData(self, realm_id, logger):
