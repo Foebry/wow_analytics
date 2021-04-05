@@ -1,4 +1,10 @@
-TODO.txt 
-__pycache__ 
-/Logs/* 
-*.log 
+TODO.txt
+__pycache__
+/Logs/*
+*.log
+/.idea/*
+/config.ini
+*_test.py
+/tests/
+/env
+config.py
