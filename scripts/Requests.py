@@ -4,173 +4,160 @@ import requests
 
 class Request():
     """ """
-    def __init__(self, realm, logger):
+    def __init__(self, data, logger):
         """Request constructor"""
-        self.client_id = realm.credentials["client_id"]
-        self.client_secret = realm.credentials['client_secret']
+        self.client_id = data['client_id']
+        self.client_secret = data['client_secret']
         self.access_token = self.getAccesToken(logger)
+        self.endpoint = "https://eu.api.blizzard.com/data/wow/{}?namespace={}-eu&locale=en_GB{}&access_token=%s"%self.access_token
+
 
 
     def getAccesToken(self, logger):
         """getting access_token"""
+
+
         # setting required data
-        address = "https://us.battle.net/oauth/token"
+        endpoint = "https://us.battle.net/oauth/token"
         data = {
             'grant_type':'client_credentials',
             'client_id': self.client_id ,
             'client_secret': self.client_secret
         }
+
         # making request
-        received = False
-        while not received:
-            try:
-                response = requests.post(address, data=data)
-                received = True
-            except requests.exceptions.ConnectionError:
-                print("Lost internet connection. Waiting for reconnect...", end="\r")
+        try: response = requests.post(endpoint, data=data)
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getAccesToken, logger, logger)
 
         # checking response
-        if response.status_code == 200: return response.json()['access_token']
-        else: logger.log(f'{response.status_code} - response')
+        return self.handleResponse(response, self.getAccesToken, logger, logger, ('access_token',))
+
 
 
     def getAuctionData(self, realm_id, logger):
         """getting auction data"""
-        address = f"https://eu.api.blizzard.com/data/wow/connected-realm/{realm_id}/auctions?namespace=dynamic-eu&locale=en_GB&access_token={self.access_token}"
-        received = False
-        while not received:
-            try:
-                response = requests.get(address)
-                received = True
-            except requests.exceptions.ConnectionError:
-                print("Lost internet connection. Waiting for reconnect...", end="\r")
-        if response.status_code == 200: return response.json()['auctions']
-        elif response.status_code == 401:
-            self.access_token = self.getAccesToken(logger)
-            self.getAuctionData(realm_id, logger)
+        endpoint = "connected-realm/{}/auctions".format(realm_id)
+
+        try: response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getAuctionData, (realm_id, logger))
+
+        return self.handleResponse(response, self.getAuctionData, (realm_id, logger), logger, ('auctions',))
 
 
-    def getItemData(self, item, logger):
+
+    def getItemData(self, _id, logger):
         """getting item data"""
-        address = f"https://eu.api.blizzard.com/data/wow/item/{item}?namespace=static-eu&locale=en_GB&access_token={self.access_token}"
-        received = False
-        while not received:
-            try:
-                response = requests.get(address)
-                received = True
-            except requests.exceptions.ConnectionError:
-                print("Lost internet connection. Waiting for reconnect...", end="\r")
-        if response.status_code == 200: return response.json()
-        elif response.status_code == 401:
-            self.access_token = self.getAccesToken(logger)
-            self.getItemData(item)
-        elif response.status_code == 404: return None
-        else: print(response.status_code, "connection error")
+        endpoint = "item/{}".format(_id)
+
+        try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getItemData, (_id, logger))
+
+        return self.handleResponse(response, self.getItemData, (_id, logger), logger)
 
 
-    def getClassData(self, class_id, logger):
+
+    def getClassData(self, _id, logger):
         """getting class data"""
-        address = f"https://eu.api.blizzard.com/data/wow/item-class/{class_id}?namespace=static-eu&locale=en_GB&access_token={self.access_token}"
-        received = False
-        while not received:
-            try:
-                response = requests.get(address)
-                received = True
-            except requests.exceptions.ConnectionError:
-                print("Lost internet connection. Waiting for reconnect...", end="\r")
-        if response.status_code == 200: return response.json()
-        elif response.status_code == 401:
-            self.access_token = self.getAccesToken(logger)
-            self.getClassData(class_id)
-        else: print(response.status_code, "connection error")
+        endpoint = "item-class/{}".format(_id)
+
+        try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getClassData, (_id, logger))
+
+        return self.handleResponse(response, self.getClassData, (_id, logger), logger)
 
 
-    def getSubclassData(self, class_id, subclass, logger):
+
+    def getSubclassData(self, class_id, _id, logger):
         """getting subclass data"""
-        address = f"https://eu.api.blizzard.com/data/wow/item-class/{class_id}/item-subclass/{subclass}?namespace=static-eu&locale=en_GB&access_token={self.access_token}"
-        received = False
-        while not received:
-            try:
-                response = requests.get(address)
-                received = True
-            except requests.exceptions.ConnectionError:
-                print("Lost internet connection. Waiting for reconnect...", end="\r")
-        if response.status_code == 200: return response.json()
-        elif response.status_code == 401:
-            self.access_token = self.getAccesToken(logger)
-            self.getSubclassData(class_id, subclass)
-        else: print(response.status_code, "connection error")
+        endpoint = "item-class/{}/item-subclass/{}".format(class_id, _id)
+
+        try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getSubclassData, (class_id, _id, logger))
+
+        return self.handleResponse(response, self.getSubclassData, (class_id, _id, logger), logger)
 
 
-    def getPetData(self, pet, logger):
+
+    def getPetData(self, _id, logger):
         """getting pet data"""
-        address = f"https://eu.api.blizzard.com/data/wow/pet/{pet}?namespace=static-eu&locale=en_GB&access_token={self.access_token}"
-        received = False
-        while not received:
-            try:
-                response = requests.get(address)
-                received = True
-            except requests.exceptions.ConnectionError:
-                print("Lost internet connection. Waiting for reconnect...", end="\r")
-        if response.status_code == 200: return response.json()
-        elif response.status_code == 401:
-            self.access_token = self.getAccesToken(logger)
-            self.getPetData(pet)
-        else: print(response.status_code, "connection error")
+        endpoint = "pet/{}".format(_id)
+
+        try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getPetData, (_id, logger))
+
+        return self.handleResponse(response, self.getPetData, (_id, logger), logger)
 
 
-    def getMountData(self, mount, logger):
+
+    def getMountData(self, _id, logger):
         """getting mount data"""
-        address = f"https://eu.api.blizzard.com/data/wow/mount/{mount}?namespace=static-eu&local=en_GB&access_token={self.access_token}"
-        received = False
-        while not received:
+        endpoint = "mount/{}".format(_id)
+
+        try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getMountData, (_id, logger))
+
+        return self.handleResponse(response, self.getMountData, (_id, logger), logger)
+
+
+
+    def getMount_id_by_name(self, name, logger):
+        endpoint = "search/mount"
+        extra = "&name.en_US={}&orderby=id&_page=1".format(name.replace(" ", "%20"))
+
+        try: response = requests.get(self.endpoint.format(endpoint, "static", extra))
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getMount_id_by_name, (name, logger))
+
+        return self.handleResponse(response, self.getMount_id_by_name, (name, logger), logger, ('results', 0, 'data', 'id'))
+
+
+
+    def getPetIndex(self, logger):
+        endpoint = "pet/index"
+
+        try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
+        except requests.exceptions.ConnectionError:
+                return self.reconnect(self.getPetIndex, logger)
+
+        return self.handleResponse(response, self.getPetIndex, logger, logger, ('pets',))
+
+
+
+    def reconnect(self, func, args):
+        while True:
             try:
-                response = requests.get(address)
-                received = True
+                if requests.get("https://google.com"): return func(*args)
             except requests.exceptions.ConnectionError:
                 print("Lost internet connection. Waiting for reconnect...", end="\r")
-        if response.status_code == 200: return response.json()
-        elif response.status_code == 401:
-            self.status_code = self.getAccesToken(logger)
-            self.getMountData(mount)
-        else: print(response.status_code, "connection error")
 
 
-    def getMountIndex(self, name, logger):
-        """Getting index of mount."""
-        address = f"https://eu.api.blizzard.com/data/wow/mount/index?namespace=static-eu&locale=en_GB&access_token={self.access_token}"
-        received = False
-        while not received:
-            try:
-                response = requests.get(address)
-                received = True
-            except requests.exceptions.ConnectionError:
-                print("Lost internet connection. Waiting for reconnect...", end="\r")
-        if response.status_code == 200:
-            response = response.json()["mounts"]
-            for index in range(0, len(response)):
-                for key in response[index]:
-                    if key == "name" and response[index][key] == name:
-                        mount_id = response[index]["id"]
-                        return mount_id
 
-        elif response.status_code == 401:
-            self.status_code = self.getAccesToken(logger)
-            self.getMountIndex(name)
-        else: print(response.status_code, "connection error")
+    def handleResponse(self, response, func, args, logger, keys=None):
+        more_keys = keys and len(keys)>1 and response.status_code == 200
+        single_key = keys and response.status_code == 200
+        no_keys = not keys and response.status_code == 200
+        unauthorized = response.status_code == 401
+        not_found = response.status_code == 404
 
+        if more_keys:
+            data = response.json()
+            for key in keys: data = data[key]
+            return data
 
-    def getPetIndexes(self, logger):
-        address = f"https://eu.api.blizzard.com/data/wow/pet/index?namespace=static-eu&locale=en_GB&access_token={self.access_token}"
-        received = False
-        while not received:
-            try:
-                response = requests.get(address)
-                received = True
-            except requests.exceptions.ConnectionError:
-                print("Lost internet connection. Waiting for reconnect...", end="\r")
-        if response.status_code == 200: return response.json()['pets']
-        elif response.status_code == 401:
-            self.status_code = self.getAccesToken(logger)
-            self.getPetIndexes()
-        else: print(response.status_code, "connection error")
+        elif single_key: return response.json()[keys[0]]
+        elif no_keys: return response.json()
+
+        elif unauthorized:
+            self.access_token = self.getAccesToken(logger)
+            func(*args)
+
+        elif not_found: return
+
+        else: logger.log(f'{response.status_code} - {response}')
