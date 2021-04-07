@@ -1,0 +1,10 @@
+__title__ = 'logger'
+__description__ = 'logger for logging'
+__url__ = ''
+__version__ = '1.3'
+__build__ = 0x022501
+__author__ = 'Sander Fabry'
+__author_email__ = 'rain_fabry@hotmail.Com'
+__license__ = ''
+__copyright__ = 'Copyright 2021 Sander Fabry'
+__cake__ = u'\u2728 \U0001f370 \u2728'
