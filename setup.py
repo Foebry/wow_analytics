@@ -8,9 +8,9 @@ here = os.path.abspath(os.path.dirname(__file__))
 packages = ['wow']
 
 requires = [
-    'Databases @ git+https://github.com/Foebry/Databases.git#egg=Databases',
+    'Databases @ git+https://github.com/Foebry/Databases.git#egg=databases',
     'Logger @ git+https://github.com/Foebry/Logger.git#egg=Logger',
-    'requires',
+    'requests',
     'mysql-connector'
 ]
 
