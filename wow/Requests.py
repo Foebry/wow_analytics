@@ -168,23 +168,32 @@ class Request():
         unauthorized = response.status_code == 401
         not_found = response.status_code == 404
 
+        # traversing through json file -> wanted data is embedded
         if more_keys:
             data = response.json()
             for key in keys:
                 try: data = data[key]
                 except KeyError as error:
-                    logger.log(msg=error, type=type(error))
+                    logger.log(msg=error, err=error)
                     return False
+
                 except IndexError as error:
-                    logger.log(msg=error, type=type(error))
+                    # some api responses return empty json instead of 404
+                    if func == self.getMount_id_by_name: return False
+
+                    logger.log(msg=error, err=error)
                     return False
                 except Exception as exception:
-                    logger.log(msg=exception, type=type(exception))
+                    logger.log(msg=exception, err=exception)
                     return False
             return data
 
+        # getting wanted data
         elif single_key: return response.json()[keys[0]]
+
+        # returning full data
         elif no_keys: return response.json()
+
 
         elif unauthorized:
             self.access_token = self.getAccesToken(logger)
@@ -192,4 +201,4 @@ class Request():
 
         elif not_found: return False
 
-        else: logger.log(f'{response.status_code} - {response}')
+        else: logger.log(msg=f'{response.status_code} - {response}')

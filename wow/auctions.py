@@ -169,11 +169,13 @@ class SoldAuction():
 
 
         item = self.auction.Item
-        item.sold += self.quantity
+        try:item.sold += self.quantity
+        except: return
         item.price += self.quantity * self.unit_price
         temp_mean = item.price / self.quantity
         new_mean = not temp_mean == item.mean_price
         valid = self.time_left != "SHORT" and self.unit_price < 9999999.9999 and self.unit_price < 5*item.mean_price
+        sold = self.partial or valid
 
         partial_set_realm_insert_data_sold_auctions = self.partial and "sold_auctions" in insert_data and self.realm_id in insert_data["sold_auctions"]
         partial_unset_realm_insert_data_sold_auctions = self.partial and "sold_auctions" in insert_data and self.realm_id not in insert_data["sold_auctions"]
@@ -186,16 +188,16 @@ class SoldAuction():
 
         if partial_set_realm_insert_data_sold_auctions or valid_complete_set_realm_insert_data_sold_auctions:
             insert_data["sold_auctions"][self.realm_id].append(self)
+            item.mean_price = temp_mean
 
         elif partial_unset_realm_insert_data_sold_auctions or valid_complete_unset_realm_insert_data_sold_auctions:
             insert_data["sold_auctions"][self.realm_id] = [self]
+            item.mean_price = temp_mean
 
         elif partial_unset_sold_auctions_insert_data or valid_complete_unset_sold_auctions_insert_data:
             insert_data["sold_auctions"] = {}
             insert_data["sold_auctions"][self.realm_id] = [self]
-        else:
-            logger.log(f"soldAuction not in any category // {vars(self)}")
-
-        if new_mean:
             item.mean_price = temp_mean
+
+        if sold and new_mean:
             item.update(update_data, insert_data, logger)

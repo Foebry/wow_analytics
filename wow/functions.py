@@ -5,8 +5,8 @@ import concurrent.futures
 
 
 
-def createAuctionsQuery(insert_data, db, section, realm_id, logger):
-    from math import ceil, floor
+def createInsertAuctionsQuery(insert_data, db, section, realm_id, logger):
+    from math import floor
     begin = section[0]
     end = section[1]
     remaining = end - begin
@@ -25,28 +25,73 @@ def createAuctionsQuery(insert_data, db, section, realm_id, logger):
     auctions_query = auctions_query[:-2] + ";"
 
     good_section = db.write(auctions_query, logger)
-    if not good_section: return createAuctionsQuery(insert_data, db, (begin, floor(remaining/2)), realm_id, logger)
+    if not good_section: return createInsertAuctionsQuery(insert_data, db, (begin, floor(remaining/2)), realm_id, logger)
 
-    if end < auctions: return createAuctionsQuery(insert_data, db, (end, auctions), realm_id, logger)
+    if end < auctions: return createInsertAuctionsQuery(insert_data, db, (end, auctions), realm_id, logger)
 
-    return logger.log(f"Inserted {auctions} auctions")
+    return logger.log(msg=f"Inserted {auctions} auctions")
+
+
+def createUpdateAuctionsQuery(update_data, db, section, realm_id, logger):
+    from math import floor
+    print(" "*100, end="\r")
+    print("updateAuctionsQuery for section {} - {}".format(section[0], section[1]), end="\r")
+
+    begin = section[0]
+    end = section[1]
+    remaining = end - begin
+    auctions = len(update_data["auctions"][realm_id])
+
+    update_query = "UPDATE auctionhouses \n"
+    update_quantity = "SET\n    quantity = CASE auction_id \n"
+    update_time_left = "    time_left = CASE auction_id \n"
+    update_bid = "  bid = CASE auction_id \n"
+    update_buyout = "   buyout = CASE auction_id \n"
+    update_last_updated = " last_updated = CASE auction_id \n"
+    where = "WHERE auction_id in ("
+
+    for auction in update_data["auctions"][realm_id][begin:end]:
+        update_quantity += "    when {} then {} \n".format(auction.id, auction.quantity)
+        update_time_left += "   when {} then {} \n".format(auction.id, f'"{auction.time_left}"')
+        update_bid += " when {} then {} \n".format(auction.id, auction.bid)
+        update_buyout += "  when {} then {} \n".format(auction.id, auction.buyout)
+        update_last_updated += "    when {} then {} \n".format(auction.id, f'"{auction.last_updated}"')
+        where += "{}, ".format(auction.id)
+
+    update_quantity += "end,\n"
+    update_time_left += "end,\n"
+    update_bid += "end,\n"
+    update_buyout += "end,\n"
+    update_last_updated += "end\n"
+    where = where[:-2]
+    where += ");"
+
+    update_query = update_query + update_quantity + update_time_left + update_bid + update_buyout + update_last_updated + where
+
+    good_section = db.update(update_query, logger)
+    if not good_section: return  createUpdateAuctionsQuery(update_data, db, (begin, floor(remaining/2)), realm_id, logger)
+
+    if end < auctions: return createUpdateAuctionsQuery(update_data, db, (end, auctions), realm_id, logger)
+
+    return logger.log(msg=f"Updated {auctions} auctions")
+
 
 
 def createSoldauctionsQuery(insert_data, db, section, realm_id, logger):
     from math import ceil, floor
     begin = section[0]
     end = section[1]
-    remaining = end-begin
-    len_sold_auctions = len(insert_data["auctions"][realm_id])
+    remaining = end - begin
+    len_sold_auctions = len(insert_data["sold_auctions"][realm_id])
 
 
     sold_auctions_query = "INSERT into soldauctions(realm_id, auction_id, item_id, pet_id, quantity, unit_price, time_left, bid, buyout, time_sold, partial) values\n"
 
-    for sold_auction in insert_data["sold_auctions"][realm_id][begin:section]:
+    for sold_auction in insert_data["sold_auctions"][realm_id][begin:end]:
         pet_id = 0
-        if auction.item_id == 82800: pet_id = auction.pet_id["id"]
+        if sold_auction.item_id == 82800: pet_id = sold_auction.pet_id
 
-        auction_values = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s),\n" %(realm_id, auction.id, auction.item_id, pet_id, auction.quantity, auction.unit_price, f'"{auction.time_left}"', auction.bid, auction.buyout, f'"{auction.time_sold}"', auction.partial)
+        auction_values = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s),\n" %(realm_id, sold_auction.id, sold_auction.item_id, pet_id, sold_auction.quantity, sold_auction.unit_price, f'"{sold_auction.time_left}"', sold_auction.bid, sold_auction.buyout, f'"{sold_auction.time_sold}"', sold_auction.partial)
         sold_auctions_query += auction_values
 
     sold_auctions_query = sold_auctions_query[:-2] + ";"
@@ -56,10 +101,10 @@ def createSoldauctionsQuery(insert_data, db, section, realm_id, logger):
 
     if end < len_sold_auctions: return createSoldauctionsQuery(insert_data, db, (end, len_sold_auctions), realm_id, logger)
 
-    return logger.log(f"Inserted {sold_auctions} sold auctions")
+    return logger.log(msg=f"Inserted {len_sold_auctions} sold auctions")
 
 
-def createItemsQuery(insert_data, db, section, logger):
+def createInsertItemsQuery(insert_data, db, section, logger):
     from math import ceil, floor
     times = ceil(len(insert_data))
     insert_items_query = "INSERT INTO items(id, pet_id, mount_id, level, name, quality, class_id, subclass_id, type, subtype, mean_price) VALUES \n  "
@@ -90,7 +135,36 @@ def createItemsQuery(insert_data, db, section, logger):
     insert_items_query = insert_items_query[:-4] + ";"
     db.write(insert_items_query, logger)
     items = len(insert_data["items"])
-    logger.log(f"Inserted {items} items" )
+    logger.log(msg=f"Inserted {items} items" )
+
+
+def createUpdateItemsQuery(update_data, db, section, logger):
+    from math import floor
+    print(" "*100, end="\r")
+    print("updateItemsQuery for section {} - {}".format(section[0], section[1]), end="\r")
+
+    begin = section[0]
+    end = section[1]
+    remaining = end - begin
+    items = len(update_data["items"])
+
+    update_query = "UPDATE items \n SET mean_price = CASE \n"
+    where = "where id in ("
+
+    for item in update_data["items"][begin:end]:
+        update_query += "   when id = {} and pet_id = {} and mount_id = {} and level = {} then {}\n".format(item.id, item.pet_id, item.mount_id, item.level, item.mean_price)
+        where += "{}, ".format(item.id)
+
+    where = where[:-2] + ");"
+    update_query += "   else mean_price \n end\n"
+    update_query += where
+
+    good_section = db.update(update_query, logger)
+    if not good_section: return createUpdateItemsQuery(update_data, db, (begin, floor(remaining/2)), logger)
+
+    if end < items: return createUpdateItemsQuery(update_data, db, (end, items), logger)
+
+    return logger.log(msg=f"Updated {items} items")
 
 
 
@@ -210,7 +284,7 @@ def setAuctionData(realm_id, auction_data, live_data, insert_data, update_data, 
         args = (realm_id, auction_id, item_id, pet, quantity, unit_price, time_left, bid, buyout, time_posted, last_updated)
         auction = Auction(live_data, logger, previous_auctions, insert_data, update_data, request, db, test, *args)
 
-        print('auctions:', len(insert_data['auctions'][realm_id]), '- items:', len(insert_data['items']), '- classes:', len(insert_data["classes"]), "- pets:", len(insert_data["pets"]), end='\r')
+        print("{}/{} auctions handled".format(len(auctions), len(auction_data)), end='\r')
         # for testing purposes
         auctions.append(auction)
     # for testing purposes
@@ -222,53 +296,20 @@ def updateData(db, update_data, realm_id, logger):
         :arg database: obj<Database>,
         :arg update_data: dict"""
 
-    update_query = "UPDATE auctionhouses \n"
-    update_quantity = "SET\n    quantity = CASE auction_id \n"
-    update_time_left = "    time_left = CASE auction_id \n"
-    update_bid = "  bid = CASE auction_id \n"
-    update_buyout = "   buyout = CASE auction_id \n"
-    update_last_updated = " last_updated = CASE auction_id \n"
-    where = "WHERE auction_id in ("
+    auctions_to_update = "auctions" in update_data and realm_id in update_data["auctions"] and len(update_data["auctions"][realm_id]) > 0
+    items_to_update = "items" in update_data and len(update_data["items"]) > 0
 
-    if "auctions" in update_data:
-        for realm_id in update_data["auctions"]:
-            for auction in update_data["auctions"][realm_id]:
-                # completing partial update statements
-                update_quantity += "     when %s then %s \n" %(auction.id, auction.quantity)
-                update_time_left += "     when %s then %s \n" %(auction.id, f'"{auction.time_left}"')
-                update_bid += "     when %s then %s \n" %(auction.id, auction.bid)
-                update_buyout += "     when %s then %s \n" %(auction.id, auction.buyout)
-                update_last_updated += "     when %s then %s \n" %(auction.id, f'"{auction.last_updated}"')
-                where += "%s, "%auction.id
-            # finishing partion update_statements
-            update_quantity += "end,\n"
-            update_time_left += "end,\n"
-            update_bid += "end,\n"
-            update_buyout += "end,\n"
-            update_last_updated += "end\n"
-            where = where[:-2]
-            where += ");"
-            # finishing complete statement
-            update_query = update_query + update_quantity + update_time_left + update_bid + update_buyout + update_last_updated + where
-            # executing update statement
-            db.execute(update_query)
+    if auctions_to_update:
+        end = len(update_data["auctions"][realm_id])
+        createUpdateAuctionsQuery(update_data, db, (0, end), realm_id, logger)
 
-    # update items
-    if "items" in update_data and len(update_data["items"]) > 0:
-        update_query = "UPDATE items \n SET mean_price = CASE \n"
-        where = "WHERE auction_id in ("
-        for item in update_data["items"]:
-            update_query += "   when id = %s and pet_id = %s and mount_id = %s and level = %s\n"%(item.id, item.pet_id, item.mount_id, item.level)
-            update_query += "   else mean_price"
-            where += "%s, "%item.id
-        where = where[:-2] + ");"
-        update_query += "end\n"
-        update_query += where
-        db.execute(update_query)
+    if items_to_update:
+        end = len(update_data["items"])
+        createUpdateItemsQuery(update_data, db, (0, end), logger)
 
 
 
-def insertData(db, insert_data, update_data, previous_auctions, realm_id, logger):
+def insertData(db, live_data, insert_data, update_data, previous_auctions, realm_id, logger):
     """Writes all sold data, database. Takes in 3 arguments:
         :arg database: obj<Database>,
         :arg insert_data: dict,
@@ -276,13 +317,13 @@ def insertData(db, insert_data, update_data, previous_auctions, realm_id, logger
 
     auctions_to_insert = "auctions" in insert_data and realm_id in insert_data["auctions"] and len(insert_data["auctions"][realm_id]) > 0
     fully_sold_auctions = realm_id in previous_auctions and len(previous_auctions[realm_id]) > 0
-    sold_auctions_to_insert = "sold_auctions" in insert_data and len(insert_data["sold_auctions"][realm_id]) > 0
     items_to_insert = "items" in insert_data and len(insert_data["items"]) > 0
+    item_prices_to_insert = "items" in update_data and len(update_data["items"]) > 0
 
     if auctions_to_insert:
         auctions = len(insert_data["auctions"][realm_id])
         section = (0, auctions)
-        createAuctionsQuery(insert_data, db, section, realm_id, logger)
+        createInsertAuctionsQuery(insert_data, db, section, realm_id, logger)
 
     # adding fully sold auctions to insert_data
     if fully_sold_auctions:
@@ -290,7 +331,9 @@ def insertData(db, insert_data, update_data, previous_auctions, realm_id, logger
         for auction_id in previous_auctions[realm_id]:
             auction = previous_auctions[realm_id][auction_id]
             args = (auction, realm_id, auction.id, auction.item_id, auction.pet_id, auction.quantity, auction.unit_price, auction.time_left, auction.bid, auction.buyout, auction.time_posted, False)
-            sold_auction = SoldAuction(insert_data, update_data, *args)
+            sold_auction = SoldAuction(insert_data, update_data, logger, *args)
+
+    sold_auctions_to_insert = "sold_auctions" in insert_data and len(insert_data["sold_auctions"][realm_id]) > 0
 
     if sold_auctions_to_insert:
         soldauctions = len(insert_data["sold_auctions"][realm_id])
@@ -300,7 +343,7 @@ def insertData(db, insert_data, update_data, previous_auctions, realm_id, logger
     if items_to_insert:
         items = len(insert_data["items"])
         sections = (0, items)
-        createItemsQuery(insert_data, db, section, logger)
+        createInsertItemsQuery(insert_data, db, section, logger)
 
     # inserting classes
     if "classes" in insert_data and len(insert_data["classes"]) > 0:
@@ -313,7 +356,7 @@ def insertData(db, insert_data, update_data, previous_auctions, realm_id, logger
         insert_classes_query = insert_classes_query[:-3] + ";"
         db.write(insert_classes_query, logger)
         classes = len(insert_data["classes"])
-        logger.log(f"Inserted {classes} classes")
+        logger.log(msg=f"Inserted {classes} classes")
 
     # insert subclasses
     if "subclasses" in insert_data and len(insert_data["subclasses"]) > 0:
@@ -326,7 +369,7 @@ def insertData(db, insert_data, update_data, previous_auctions, realm_id, logger
 
         db.write(insert_subclass_query, logger)
         subclasses = len(insert_data["subclasses"])
-        logger.log(f"Inserted {subclasses} subclasses")
+        logger.log(msg=f"Inserted {subclasses} subclasses")
 
     # insert pets
     if "pets" in insert_data and len(insert_data["pets"]) > 0:
@@ -339,7 +382,7 @@ def insertData(db, insert_data, update_data, previous_auctions, realm_id, logger
         insert_pets_query = insert_pets_query[:-5] + ";"
         db.write(insert_pets_query, logger)
         pets = len(insert_data["pets"])
-        logger.log(f"Inserted {pets} pets")
+        logger.log(msg=f"Inserted {pets} pets")
 
     # insert mounts
     if "mounts" in insert_data and len(insert_data["mounts"]) > 0:
@@ -352,12 +395,22 @@ def insertData(db, insert_data, update_data, previous_auctions, realm_id, logger
         insert_mounts_query = insert_mounts_query[:-7] + ";"
         db.write(insert_mounts_query, logger)
         mounts = len(insert_data["mounts"])
-        logger.log(f"Inserted {mounts} mounts")
+        logger.log(msg=f"Inserted {mounts} mounts")
 
     # insert prices
-    if "prices" in insert_data and len(insert_data["prices"]) > 0:
-        print("insertData section prices")
-        for price_update in insert_data["prices"]: db.write(price_update, logger)
+    if item_prices_to_insert:
+        insert_string = "INSERT INTO item_prices (item_id, pet_id, time, value) VALUES \n "
+
+        for index in range(len(update_data["items"])):
+            item = update_data["items"][index]
+
+            price_values = "(%s, %s, %s, %s), \n" %(item.id, item.pet_id, f'"{datetime.datetime.now() - datetime.timedelta(hours=1)}"', item.mean_price)
+            insert_string += price_values
+
+        insert_string = insert_string[:-3] + ";"
+        db.write(insert_string, logger)
+        insert_strings = len(update_data["items"])
+        logger.log(msg="Inserted %s item_price changes" %insert_strings)
 
 
 def setLiveMounts(live_data, mount_data, logger):
@@ -508,6 +561,6 @@ def setLiveData(realm_id, db, logger, request):
         try:
             with concurrent.futures.ThreadPoolExecutor() as exe:
                 [exe.submit(setLiveAuctions, live_data, auction, logger, request) for auction in data]
-        except Exception as err: logger.log(err, type(err))
+        except Exception as err: logger.log(msg=err, err=err)
 
     return live_data

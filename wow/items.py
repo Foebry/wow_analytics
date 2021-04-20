@@ -142,11 +142,12 @@ class Item:
 
     def update(self, update_data, insert_data, logger):
         """update data for item if mean_price changes"""
-        if "items" in update_data:
-            update_data["items"].append(self)
-        else: update_data["items"] = [self]
+        unset_items_update_data = "items" not in update_data
+        new_item_to_update = not unset_items_update_data and self not in update_data["items"]
 
-        insert_string = "INSERT INTO item_prices (item_id, time, value) VALUES(%s, %s, %s)"%(self.id, f'"{datetime.datetime.now()}"', self.mean_price)
-        if "prices" in insert_data:
-            insert_data["prices"].append(insert_string)
-        else: insert_data["prices"] = [insert_string]
+        # add items to be updated
+        if unset_items_update_data:
+            update_data["items"] = [self]
+
+        elif new_item_to_update:
+            update_data["items"].append(self)
