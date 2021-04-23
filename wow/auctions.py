@@ -181,6 +181,7 @@ class SoldAuction():
 
 
         if not set_sold_auctions_insert_data:
+            logger.log(True, "sold_auctions not in insert_data", timestamped=False, level_display=False)
             insert_data["sold_auctions"] = {}
             insert_data["sold_auctions"][self.realm_id] = []
 
@@ -193,7 +194,7 @@ class SoldAuction():
             item.update(update_data, insert_data, logger)
             return
 
-        auctions_to_check = [insert_data["sold_auctions"][self.realm_id][x] for x in range(len(insert_data["sold_auctions"][self.realm_id])) if insert_data["sold_auctions"][self.realm_id][x].item_id == self.item_id]
+        auctions_to_check = [insert_data["sold_auctions"][self.realm_id][x] for x in range(len(insert_data["sold_auctions"][self.realm_id])) if insert_data["sold_auctions"][self.realm_id][x].auction.Item.id == self.auction.Item.id]
 
         if isValidSoldAuction(self, auctions_to_check, logger):
             insert_data["sold_auctions"][self.realm_id].append(self)
