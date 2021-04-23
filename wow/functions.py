@@ -6,7 +6,7 @@ import concurrent.futures
 
 
 def isValidSoldAuction(sold_auction, auctions_to_check, logger):
-    item = sold_auction.Item
+    item = sold_auction.auction.Item
     not_overpriced = item.mean_price == 0 or sold_auction.unit_price < 5*item.mean_price
     valid = sold_auction.time_left != "SHORT" and self.unit_price < 9999999.9999 and not_overpriced
 
