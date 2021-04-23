@@ -181,7 +181,7 @@ class SoldAuction():
 
 
         if not set_sold_auctions_insert_data:
-            insert_data["soldauctions"] = {}
+            insert_data["sold_auctions"] = {}
             insert_data["sold_auctions"][self.realm_id] = []
 
         elif not set_realm_insert_data_sold_auctions:
