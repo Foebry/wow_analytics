@@ -167,6 +167,8 @@ class SoldAuction():
             :arg insert_data: dict
             :arg update_data: dict"""
 
+        from functions import isValidSoldAuction
+
 
         item = self.auction.Item
         try:item.sold += self.quantity
@@ -174,30 +176,26 @@ class SoldAuction():
         item.price += self.quantity * self.unit_price
         temp_mean = item.price / self.quantity
         new_mean = not temp_mean == item.mean_price
-        valid = self.time_left != "SHORT" and self.unit_price < 9999999.9999 and self.unit_price < 5*item.mean_price
-        sold = self.partial or valid
-
-        partial_set_realm_insert_data_sold_auctions = self.partial and "sold_auctions" in insert_data and self.realm_id in insert_data["sold_auctions"]
-        partial_unset_realm_insert_data_sold_auctions = self.partial and "sold_auctions" in insert_data and self.realm_id not in insert_data["sold_auctions"]
-        partial_unset_sold_auctions_insert_data = self.partial and "sold_auctions" not in insert_data
-
-        valid_complete_set_realm_insert_data_sold_auctions = not self.partial and valid and "sold_auctions" in insert_data and self.realm_id in insert_data["sold_auctions"]
-        valid_complete_unset_realm_insert_data_sold_auctions = not self.partial and valid and "sold_auctions" in insert_data and self.realm_id not in insert_data["sold_auctions"]
-        valid_complete_unset_sold_auctions_insert_data = not self.partial and valid and "sold_auctions" not in insert_data
+        set_sold_auctions_insert_data = "sold_auctions" in insert_data
+        set_realm_insert_data_sold_auctions = set_sold_auctions_insert_data and self.realm_id in insert_data["sold_auctions"]
 
 
-        if partial_set_realm_insert_data_sold_auctions or valid_complete_set_realm_insert_data_sold_auctions:
+        if not set_sold_auctions_insert_data:
+            insert_data["soldauctions"] = {}
+            insert_data["sold_auctions"][self.realm_id] = []
+
+        elif not set_realm_insert_data_sold_auctions:
+            insert_data["sold_auctions"][self.realm_id] = []
+
+        if self.partial:
             insert_data["sold_auctions"][self.realm_id].append(self)
             item.mean_price = temp_mean
+            item.update(update_data, insert_data, logger)
+            return
 
-        elif partial_unset_realm_insert_data_sold_auctions or valid_complete_unset_realm_insert_data_sold_auctions:
-            insert_data["sold_auctions"][self.realm_id] = [self]
+        auctions_to_check = [insert_data["sold_auctions"][self.realm_id][x] for x in range(len(insert_data["sold_auctions"][self.realm_id])) if insert_data["sold_auctions"][self.realm_id][x].item_id == self.item_id]
+
+        if isValidSoldAuction(self, auctions_to_check, logger):
+            insert_data["sold_auctions"][self.realm_id].append(self)
             item.mean_price = temp_mean
-
-        elif partial_unset_sold_auctions_insert_data or valid_complete_unset_sold_auctions_insert_data:
-            insert_data["sold_auctions"] = {}
-            insert_data["sold_auctions"][self.realm_id] = [self]
-            item.mean_price = temp_mean
-
-        if sold and new_mean:
             item.update(update_data, insert_data, logger)

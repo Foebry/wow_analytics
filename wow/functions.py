@@ -5,6 +5,25 @@ import concurrent.futures
 
 
 
+def isValidSoldAuction(sold_auction, auctions_to_check, logger):
+    item = sold_auction.Item
+    not_overpriced = item.mean_price == 0 or sold_auction.unit_price < 5*item.mean_price
+    valid = sold_auction.time_left != "SHORT" and self.unit_price < 9999999.9999 and not_overpriced
+
+    for soldauction in auctions_to_check:
+        cheaper = sold_auction.unit_price < soldauction.unit_price
+        got_undercut = sold_auction.unit_price == soldauction.unit_price and sold_auction.auction.time_posted > soldauction.auction.time_posted
+
+        if not cheaper: return False
+        if got_undercut: return False
+
+
+    if valid: return True
+
+    return False
+
+
+
 def createInsertAuctionsQuery(insert_data, db, section, realm_id, logger):
     from math import floor
     begin = section[0]
@@ -25,7 +44,7 @@ def createInsertAuctionsQuery(insert_data, db, section, realm_id, logger):
     auctions_query = auctions_query[:-2] + ";"
 
     good_section = db.write(auctions_query, logger)
-    if not good_section: return createInsertAuctionsQuery(insert_data, db, (begin, floor(remaining/2)), realm_id, logger)
+    if not good_section: return createInsertAuctionsQuery(insert_data, db, (begin, floor(begin+remaining/2)), realm_id, logger)
 
     if end < auctions: return createInsertAuctionsQuery(insert_data, db, (end, auctions), realm_id, logger)
 
@@ -69,7 +88,7 @@ def createUpdateAuctionsQuery(update_data, db, section, realm_id, logger):
     update_query = update_query + update_quantity + update_time_left + update_bid + update_buyout + update_last_updated + where
 
     good_section = db.update(update_query, logger)
-    if not good_section: return  createUpdateAuctionsQuery(update_data, db, (begin, floor(remaining/2)), realm_id, logger)
+    if not good_section: return  createUpdateAuctionsQuery(update_data, db, (begin, floor(begin+remaining/2)), realm_id, logger)
 
     if end < auctions: return createUpdateAuctionsQuery(update_data, db, (end, auctions), realm_id, logger)
 
@@ -97,7 +116,7 @@ def createSoldauctionsQuery(insert_data, db, section, realm_id, logger):
     sold_auctions_query = sold_auctions_query[:-2] + ";"
 
     good_section = db.write(sold_auctions_query, logger)
-    if not good_section: return createSoldauctionsQuery(insert_data, db, (begin, floor(remaining/2)), realm_id, logger)
+    if not good_section: return createSoldauctionsQuery(insert_data, db, (begin, floor(begin+remaining/2)), realm_id, logger)
 
     if end < len_sold_auctions: return createSoldauctionsQuery(insert_data, db, (end, len_sold_auctions), realm_id, logger)
 
@@ -140,11 +159,16 @@ def createInsertItemsQuery(insert_data, db, section, logger):
 
 def createUpdateItemsQuery(update_data, db, section, logger):
     from math import floor
+    # from ErrorHandler import RaiseError
+
     print(" "*100, end="\r")
     print("updateItemsQuery for section {} - {}".format(section[0], section[1]), end="\r")
 
     begin = section[0]
     end = section[1]
+
+    # if begin > end: RaiseError.ValueError("section[0] is greater then section[1] for createUpdateItemsQuery functions.py")
+
     remaining = end - begin
     items = len(update_data["items"])
 
@@ -160,7 +184,7 @@ def createUpdateItemsQuery(update_data, db, section, logger):
     update_query += where
 
     good_section = db.update(update_query, logger)
-    if not good_section: return createUpdateItemsQuery(update_data, db, (begin, floor(remaining/2)), logger)
+    if not good_section: return createUpdateItemsQuery(update_data, db, (begin, floor(begin+remaining/2)), logger)
 
     if end < items: return createUpdateItemsQuery(update_data, db, (end, items), logger)
 

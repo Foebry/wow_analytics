@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="2938aab0-e689-469f-a0c6-617a5291f527" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/config.ini" beforeDir="false" afterPath="$PROJECT_DIR$/config.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/env/Lib/site-packages/Logger" beforeDir="false" afterPath="$PROJECT_DIR$/env/Lib/site-packages/Logger" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/env/Lib/site-packages/logger-1.0-py3.8.egg-info/PKG-INFO" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/env/Lib/site-packages/logger-1.0-py3.8.egg-info/SOURCES.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/env/Lib/site-packages/logger-1.0-py3.8.egg-info/dependency_links.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/env/Lib/site-packages/logger-1.0-py3.8.egg-info/installed-files.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/env/Lib/site-packages/logger-1.0-py3.8.egg-info/top_level.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/Requests.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/Requests.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/auctions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/auctions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/classes.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/classes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/items.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/items.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/mounts.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/mounts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/pets.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/pets.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/realms.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/realms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/wow.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/wow.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/wow_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/wow_test.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="1qTYxPRk0UlL8LEZNIuzeBgS029" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="RunManager">
+    <configuration name="wow" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="Wow_Analytics" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/scripts" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scripts/wow.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.wow" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="2938aab0-e689-469f-a0c6-617a5291f527" name="Default Changelist" comment="" />
+      <created>1617105293484</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1617105293484</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="WindowStateProjectService">
+    <state width="1899" height="284" key="GridCell.Tab.0.bottom" timestamp="1617181904913">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="284" key="GridCell.Tab.0.bottom/0.0.1920.1040/-1920.0.1920.1040@0.0.1920.1040" timestamp="1617181904913" />
+    <state width="1899" height="284" key="GridCell.Tab.0.center" timestamp="1617181904913">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="284" key="GridCell.Tab.0.center/0.0.1920.1040/-1920.0.1920.1040@0.0.1920.1040" timestamp="1617181904913" />
+    <state width="1899" height="284" key="GridCell.Tab.0.left" timestamp="1617181904912">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="284" key="GridCell.Tab.0.left/0.0.1920.1040/-1920.0.1920.1040@0.0.1920.1040" timestamp="1617181904912" />
+    <state width="1899" height="284" key="GridCell.Tab.0.right" timestamp="1617181904913">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="284" key="GridCell.Tab.0.right/0.0.1920.1040/-1920.0.1920.1040@0.0.1920.1040" timestamp="1617181904913" />
+    <state width="1899" height="284" key="GridCell.Tab.1.bottom" timestamp="1617181937618">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="284" key="GridCell.Tab.1.bottom/0.0.1920.1040/-1920.0.1920.1040@0.0.1920.1040" timestamp="1617181937618" />
+    <state width="1899" height="284" key="GridCell.Tab.1.center" timestamp="1617181937617">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="284" key="GridCell.Tab.1.center/0.0.1920.1040/-1920.0.1920.1040@0.0.1920.1040" timestamp="1617181937617" />
+    <state width="1899" height="284" key="GridCell.Tab.1.left" timestamp="1617181937617">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="284" key="GridCell.Tab.1.left/0.0.1920.1040/-1920.0.1920.1040@0.0.1920.1040" timestamp="1617181937617" />
+    <state width="1899" height="284" key="GridCell.Tab.1.right" timestamp="1617181937617">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state width="1899" height="284" key="GridCell.Tab.1.right/0.0.1920.1040/-1920.0.1920.1040@0.0.1920.1040" timestamp="1617181937617" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/scripts/items.py</url>
+          <line>35</line>
+          <option name="timeStamp" value="11" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

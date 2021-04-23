@@ -79,7 +79,7 @@ def main(realm):
 
 
 if __name__ == "__main__":
-    logger = Logger(os.path.join(os.getcwd(), "wow"))
+    logger = Logger(os.getcwd())
     realms = [Realm(_id, config.REALMS[_id]) for _id in config.REALMS]
     db = Database(DATABASE, logger)
 
