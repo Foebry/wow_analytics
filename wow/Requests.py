@@ -38,6 +38,9 @@ class Request():
         """getting auction data"""
         endpoint = "connected-realm/{}/auctions".format(realm_id)
 
+        print(" "*100, end="\r")
+        print("requesting auction data", end="\r")
+
         try: response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
         except requests.exceptions.ConnectionError:
             return self.reconnect(self.getAuctionData, (realm_id, logger))
@@ -53,6 +56,9 @@ class Request():
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
             return self.reconnect(self.getItemData, (_id, logger))
+        except requests.exceptions.ChunkedEncodingError:
+            print("ChunkedEncodingError for item {}".format(_id))
+            quit()
 
         return self.handleResponse(response, self.getItemData, (_id, logger), logger)
 
@@ -157,6 +163,7 @@ class Request():
             try:
                 if requests.get("https://google.com"): return func(*args)
             except requests.exceptions.ConnectionError:
+                print("*"*100, end="\r")
                 print("Lost internet connection. Waiting for reconnect...", end="\r")
 
 

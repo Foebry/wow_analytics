@@ -1,7 +1,7 @@
 __title__ = 'wow'
 __description__ = ''
 __url__ = ''
-__version__ = '1.3.2'
+__version__ = '1.3.3'
 __author__ = 'Foebry'
 __author_email__ = 'rain_fabry@hotmail.com'
 __license__ = ''

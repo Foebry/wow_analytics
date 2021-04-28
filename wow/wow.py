@@ -1,21 +1,39 @@
 """main program functionality"""
-from auctions import Auction
-from Requests import Request
-from realms import Realm
 from functions import *
-from databases.Database import Database
-from logger.Logger import Logger
 from datetime import datetime
-from config import *
 
 import concurrent.futures
-import time
-import config
 import os
+import argparse
+
+
+
+def setup(test):
+    from databases.Database import Database
+    from logger.Logger import Logger
+    from realms import Realm
+    from config import REALMS, DATABASE, DATABASE_TEST
+
+    logger = Logger(os.getcwd(), "d")
+
+    logger.log(msg="\n"*3, timestamped=False, level_display=False)
+    logger.log(msg="*"*150, timestamped=False, level_display=False)
+    logger.log(msg="*"*65+"Started new session!"+"*"*65, timestamped=False, level_display=False)
+    logger.log(msg="*"*150, timestamped=False, level_display=False)
+
+    realms = [Realm(_id, REALMS[_id]) for _id in REALMS]
+
+    if test:
+        db = Database(DATABASE_TEST, logger)
+        return logger, realms, db
+
+    db = Database(DATABASE, logger)
+    return logger, realms, db
 
 
 
 def wait(duration):
+    import time
     end = time.time() + duration
 
     while not time.time() >= end:
@@ -29,13 +47,9 @@ def wait(duration):
 
 def init(realm, live_data=None, start=False):
     from functions import setLiveData
+    from Requests import Request
+    from config import CREDENTIALS
     if start:
-
-        logger.log(msg="\n"*3, timestamped=False, level_display=False)
-        logger.log(msg="*"*150, timestamped=False, level_display=False)
-        logger.log(msg="*"*65+"Started new session!"+"*"*65, timestamped=False, level_display=False)
-        logger.log(msg="*"*150, timestamped=False, level_display=False)
-
         request = Request(CREDENTIALS, logger)
         live_data = setLiveData(realm.id, db, logger, request)
         temp = live_data["auctions"][realm.id].copy()
@@ -79,9 +93,10 @@ def main(realm):
 
 
 if __name__ == "__main__":
-    logger = Logger(os.getcwd())
-    realms = [Realm(_id, config.REALMS[_id]) for _id in config.REALMS]
-    db = Database(DATABASE, logger)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test", dest="test", action="store_true")
+    args = parser.parse_args()
+    logger, realms, db = setup(args.test)
 
     for realm in realms:
         main(realm)

@@ -5,20 +5,23 @@ import concurrent.futures
 
 
 
-def isValidSoldAuction(sold_auction, auctions_to_check, logger):
+def isValidSoldAuction(live_data, sold_auction, auctions_to_check, logger):
     item = sold_auction.auction.Item
-    not_overpriced = item.mean_price == 0 or sold_auction.unit_price < 5*item.mean_price
-    valid = sold_auction.time_left != "SHORT" and self.unit_price < 9999999.9999 and not_overpriced
+    try: not_overpriced = item.mean_price == 0 or sold_auction.unit_price < 5*item.mean_price and sold_auction.unit_price < 9999999.9999
+    except:
+        logger.log(True, msg="item {} has no mean_price".format(item.id))
+        return
+    valid = sold_auction.time_left != "SHORT" and not_overpriced
 
     for soldauction in auctions_to_check:
         cheaper = sold_auction.unit_price < soldauction.unit_price
-        got_undercut = sold_auction.unit_price == soldauction.unit_price and sold_auction.auction.time_posted > soldauction.auction.time_posted
+        got_undercut = sold_auction.unit_price == soldauction.unit_price and sold_auction.auction.time_posted < soldauction.auction.time_posted
 
-        if not cheaper: return False
-        if got_undercut: return False
+        if not cheaper or got_undercut: return False
 
-
-    if valid: return True
+    if valid:
+        del live_data["auctions"][sold_auction.realm_id][sold_auction.auction.id]
+        return True
 
     return False
 
@@ -26,6 +29,10 @@ def isValidSoldAuction(sold_auction, auctions_to_check, logger):
 
 def createInsertAuctionsQuery(insert_data, db, section, realm_id, logger):
     from math import floor
+
+    print(" "*100, end="\r")
+    print("inserting auctions {} - {}".format(section[0], section[1]), end="\r")
+
     begin = section[0]
     end = section[1]
     remaining = end - begin
@@ -54,7 +61,7 @@ def createInsertAuctionsQuery(insert_data, db, section, realm_id, logger):
 def createUpdateAuctionsQuery(update_data, db, section, realm_id, logger):
     from math import floor
     print(" "*100, end="\r")
-    print("updateAuctionsQuery for section {} - {}".format(section[0], section[1]), end="\r")
+    print("updating auctions {} - {}".format(section[0], section[1]), end="\r")
 
     begin = section[0]
     end = section[1]
@@ -97,7 +104,11 @@ def createUpdateAuctionsQuery(update_data, db, section, realm_id, logger):
 
 
 def createSoldauctionsQuery(insert_data, db, section, realm_id, logger):
-    from math import ceil, floor
+    from math import floor
+
+    print(" "*100, end="\r")
+    print("inserting soldauctions {} - {}".format(section[0], section[1]), end="\r")
+
     begin = section[0]
     end = section[1]
     remaining = end - begin
@@ -124,8 +135,16 @@ def createSoldauctionsQuery(insert_data, db, section, realm_id, logger):
 
 
 def createInsertItemsQuery(insert_data, db, section, logger):
-    from math import ceil, floor
-    times = ceil(len(insert_data))
+    from math import floor
+
+    print(" "*100, end="\r")
+    print("inserting items {} - {}".format(section[0], section[1]), end="\r")
+
+    begin = section[0]
+    end = section[1]
+    remaining = end - begin
+    items = len(insert_data["items"])
+
     insert_items_query = "INSERT INTO items(id, pet_id, mount_id, level, name, quality, class_id, subclass_id, type, subtype, mean_price) VALUES \n  "
 
     for index in range(len(insert_data["items"])):
@@ -152,9 +171,13 @@ def createInsertItemsQuery(insert_data, db, section, logger):
         insert_items_query += item_values
 
     insert_items_query = insert_items_query[:-4] + ";"
-    db.write(insert_items_query, logger)
-    items = len(insert_data["items"])
-    logger.log(msg=f"Inserted {items} items" )
+
+    good_section = db.write(insert_items_query, logger)
+    if not good_section: return createInsertItemsQuery(insert_data, db, (start, floor(begin+remaining/2)), logger)
+
+    if end > items: return createInsertItemsQuery(insert_data, db, (end, items), logger)
+
+    return logger.log(msg=f"Inserted {items} items" )
 
 
 def createUpdateItemsQuery(update_data, db, section, logger):
@@ -162,7 +185,7 @@ def createUpdateItemsQuery(update_data, db, section, logger):
     # from ErrorHandler import RaiseError
 
     print(" "*100, end="\r")
-    print("updateItemsQuery for section {} - {}".format(section[0], section[1]), end="\r")
+    print("updateing items {} - {}".format(section[0], section[1]), end="\r")
 
     begin = section[0]
     end = section[1]
@@ -189,6 +212,120 @@ def createUpdateItemsQuery(update_data, db, section, logger):
     if end < items: return createUpdateItemsQuery(update_data, db, (end, items), logger)
 
     return logger.log(msg=f"Updated {items} items")
+
+
+def createInsertMountsQuery(insert_data, db, section, logger):
+    from math import floor
+
+    print(" "*100, end="\r")
+    print("inserting mounts {} - {}".format(section[0], section[1]), end="\r")
+
+    begin = section[0]
+    end = section[1]
+
+    remaining = end - begin
+    mounts = len(insert_data["mounts"])
+
+    insert_mounts_query = "INSERT INTO mounts(id, name, source, faction) VALUES \n  "
+
+    for mount in insert_data["mounts"]:
+        mount_values = "(%s, %s, %s, %s), \n    " %(mount.id, f'"{mount.name}"', f'"{mount.source}"', f'"{mount.faction}"')
+        insert_mounts_query += mount_values
+
+    insert_mounts_query = insert_mounts_query[:-7] + ";"
+
+    good_section = db.write(insert_mounts_query, logger)
+    if not good_section: return createInsertMountsQuery(insert_data, db, (begin, floor(begin+remaining/2)), logger)
+
+    if end < mounts: return createInsertMountsQuery(insert_data, db, (end, mounts), logger)
+
+    return logger.log(msg=f"Inserted {mounts} mounts")
+
+
+def createInsertPetsQuery(insert_data, db, section, logger):
+    from math import floor
+
+    print(" "*100, end="\r")
+    print("inserting pets {} - {}".format(section[0], section[1]), end="\r")
+
+    begin = section[0]
+    end = section[1]
+
+    remaining = end - begin
+    pets = len(insert_data["pets"])
+
+    insert_pets_query = "INSERT INTO pets(ID, name, type, source) VALUES \n "
+
+    for pet in insert_data["pets"]:
+        pet_values = "(%s, %s, %s, %s), \n  "%(pet.id, f'"{pet.name}"', f'"{pet.type}"', f'"{pet.source}"')
+        insert_pets_query += pet_values
+
+    insert_pets_query = insert_pets_query[:-5] + ";"
+
+    good_section = db.write(insert_pets_query, logger)
+    if not good_section: return createInsertPetsQuery(insert_data, db, (begin, floor(begin+remaining/2)), logger)
+
+    if end < pets: return createInsertPetsQuery(insert_data, db, (end, pets), logger)
+
+    return logger.log(msg=f"Inserted {pets} pets")
+
+
+def createInsertClassesQuery(insert_data, db, section, logger):
+    from math import floor
+
+    print(" "*100, end="\r")
+    print("inserting classes {} - {}".format(section[0], section[1]), end="\r")
+
+    begin = section[0]
+    end = section[1]
+
+    remaining = end - begin
+    classes = len(insert_data["classes"])
+
+    insert_classes_query = "INSERT INTO classes(id, name) VALUES \n "
+
+    for insert_class in insert_data["classes"]:
+        class_values = "(%s, %s),\n "%(insert_class.id, f'"{insert_class.name}"')
+        insert_classes_query += class_values
+
+    insert_classes_query = insert_classes_query[:-3] + ";"
+
+    good_section = db.write(insert_classes_query, logger)
+    if not good_section: return creatInsertClassesQuery(insert_data, db, section, logger)
+
+    if end < classes: return createInsertClassesQuery(insert_data, db, section, logger)
+
+    return logger.log(msg=f"Inserted {classes} classes")
+
+
+
+def createInsertSubclassesQuery(insert_data, db, section, logger):
+    from math import floor
+
+    print(" "*100, end="\r")
+    print("insertsubclasses {} - {}".format(section[0], section[1]), end="\r")
+
+    begin = section[0]
+    end = section[1]
+
+    remaining = end - begin
+    subclasses = len(insert_data["subclasses"])
+
+
+    insert_subclass_query = "INSERT INTO subclasses(Class_id, id, name) VALUES\n    "
+
+    for subclass in insert_data["subclasses"]:
+        subclass_values = "(%s, %s, %s),\n  "%(subclass.class_id, subclass.subclass_id, f'"{subclass.name}"')
+        insert_subclass_query += subclass_values
+
+    insert_subclass_query = insert_subclass_query[:-4] + ";"
+
+    good_section = db.write(insert_subclass_query, logger)
+    if not good_section: return createInsertSubclassesQuery(insert_data, db, section, logger)
+
+    if end < subclasses: return createInsertSubclassesQuery(insert_data, db, section, logger)
+
+    return logger.log(msg=f"Inserted {subclasses} subclasses")
 
 
 
@@ -334,15 +471,43 @@ def updateData(db, update_data, realm_id, logger):
 
 
 def insertData(db, live_data, insert_data, update_data, previous_auctions, realm_id, logger):
-    """Writes all sold data, database. Takes in 3 arguments:
-        :arg database: obj<Database>,
-        :arg insert_data: dict,
-        :arg previous_auctions: dict"""
+    """
+        Function responsible to write all data into the database.
+    """
 
     auctions_to_insert = "auctions" in insert_data and realm_id in insert_data["auctions"] and len(insert_data["auctions"][realm_id]) > 0
     fully_sold_auctions = realm_id in previous_auctions and len(previous_auctions[realm_id]) > 0
     items_to_insert = "items" in insert_data and len(insert_data["items"]) > 0
     item_prices_to_insert = "items" in update_data and len(update_data["items"]) > 0
+    mounts_to_insert = "mounts" in insert_data and len(insert_data["mounts"]) > 0
+    pets_to_insert = "pets" in insert_data and len(insert_data["pets"]) > 0
+    classes_to_insert = "classes" in insert_data and len(insert_data["classes"]) > 0
+    subclasses_to_insert = "subclasses" in insert_data and len(insert_data["subclasses"]) > 0
+
+    if mounts_to_insert:
+        mounts = len(insert_data["mounts"])
+        section = (0, mounts)
+        createInsertMountsQuery(insert_data, db, section, logger)
+
+    if pets_to_insert:
+        pets = len(insert_data["pets"])
+        section = (0, pets)
+        createInsertPetsQuery(insert_data, db, section, logger)
+
+    if classes_to_insert:
+        classes = len(insert_data["classes"])
+        section = (0, classes)
+        createInsertClassesQuery(insert_data, db, section, logger)
+
+    if subclasses_to_insert:
+        subclasses = len(insert_data["subclasses"])
+        section = (0, subclasses)
+        createInsertSubclassesQuery(insert_data, db, section, logger)
+
+    if items_to_insert:
+        items = len(insert_data["items"])
+        section = (0, items)
+        createInsertItemsQuery(insert_data, db, section, logger)
 
     if auctions_to_insert:
         auctions = len(insert_data["auctions"][realm_id])
@@ -355,7 +520,7 @@ def insertData(db, live_data, insert_data, update_data, previous_auctions, realm
         for auction_id in previous_auctions[realm_id]:
             auction = previous_auctions[realm_id][auction_id]
             args = (auction, realm_id, auction.id, auction.item_id, auction.pet_id, auction.quantity, auction.unit_price, auction.time_left, auction.bid, auction.buyout, auction.time_posted, False)
-            sold_auction = SoldAuction(insert_data, update_data, logger, *args)
+            sold_auction = SoldAuction(live_data, insert_data, update_data, logger, *args)
 
     sold_auctions_to_insert = "sold_auctions" in insert_data and len(insert_data["sold_auctions"][realm_id]) > 0
 
@@ -364,70 +529,12 @@ def insertData(db, live_data, insert_data, update_data, previous_auctions, realm
         section = (0, soldauctions)
         createSoldauctionsQuery(insert_data, db, section, realm_id, logger)
 
-    if items_to_insert:
-        items = len(insert_data["items"])
-        sections = (0, items)
-        createInsertItemsQuery(insert_data, db, section, logger)
-
-    # inserting classes
-    if "classes" in insert_data and len(insert_data["classes"]) > 0:
-        insert_classes_query = "INSERT INTO classes(id, name) VALUES \n "
-
-        for insert_class in insert_data["classes"]:
-            class_values = "(%s, %s),\n "%(insert_class.id, f'"{insert_class.name}"')
-            insert_classes_query += class_values
-
-        insert_classes_query = insert_classes_query[:-3] + ";"
-        db.write(insert_classes_query, logger)
-        classes = len(insert_data["classes"])
-        logger.log(msg=f"Inserted {classes} classes")
-
-    # insert subclasses
-    if "subclasses" in insert_data and len(insert_data["subclasses"]) > 0:
-        insert_subclass_query = "INSERT INTO subclasses(Class_id, id, name) VALUES\n    "
-
-        for subclass in insert_data["subclasses"]:
-            subclass_values = "(%s, %s, %s),\n  "%(subclass.class_id, subclass.subclass_id, f'"{subclass.name}"')
-            insert_subclass_query += subclass_values
-        insert_subclass_query = insert_subclass_query[:-4] + ";"
-
-        db.write(insert_subclass_query, logger)
-        subclasses = len(insert_data["subclasses"])
-        logger.log(msg=f"Inserted {subclasses} subclasses")
-
-    # insert pets
-    if "pets" in insert_data and len(insert_data["pets"]) > 0:
-        insert_pets_query = "INSERT INTO pets(ID, name, type, source) VALUES \n "
-
-        for pet in insert_data["pets"]:
-            pet_values = "(%s, %s, %s, %s), \n  "%(pet.id, f'"{pet.name}"', f'"{pet.type}"', f'"{pet.source}"')
-            insert_pets_query += pet_values
-
-        insert_pets_query = insert_pets_query[:-5] + ";"
-        db.write(insert_pets_query, logger)
-        pets = len(insert_data["pets"])
-        logger.log(msg=f"Inserted {pets} pets")
-
-    # insert mounts
-    if "mounts" in insert_data and len(insert_data["mounts"]) > 0:
-        insert_mounts_query = "INSERT INTO mounts(id, name, source, faction) VALUES \n  "
-
-        for mount in insert_data["mounts"]:
-            mount_values = "(%s, %s, %s, %s), \n    " %(mount.id, f'"{mount.name}"', f'"{mount.source}"', f'"{mount.faction}"')
-            insert_mounts_query += mount_values
-
-        insert_mounts_query = insert_mounts_query[:-7] + ";"
-        db.write(insert_mounts_query, logger)
-        mounts = len(insert_data["mounts"])
-        logger.log(msg=f"Inserted {mounts} mounts")
-
     # insert prices
     if item_prices_to_insert:
         insert_string = "INSERT INTO item_prices (item_id, pet_id, time, value) VALUES \n "
 
         for index in range(len(update_data["items"])):
             item = update_data["items"][index]
-
             price_values = "(%s, %s, %s, %s), \n" %(item.id, item.pet_id, f'"{datetime.datetime.now() - datetime.timedelta(hours=1)}"', item.mean_price)
             insert_string += price_values
 
@@ -440,6 +547,9 @@ def insertData(db, live_data, insert_data, update_data, previous_auctions, realm
 def setLiveMounts(live_data, mount_data, logger):
     from mounts import Mount
 
+    print(" "*100, end="\r")
+    print("Setting live Mounts".format(section[0], section[1]), end="\r")
+
     kwargs = {"_id":mount_data[0], "name":mount_data[1], "source":mount_data[2], "faction":mount_data[3]}
     if "mounts" in live_data: live_data["mounts"][mount_data[0]] = Mount(logger, **kwargs)
     else: live_data["mounts"] = {mount_data[0]:Mount(logger, **kwargs)}
@@ -450,6 +560,9 @@ def setLiveMounts(live_data, mount_data, logger):
 def setLivePets(live_data, pet_data, logger):
     from pets import Pet
 
+    print(" "*100, end="\r")
+    print("Setting live Pets".format(section[0], section[1]), end="\r")
+
     kwargs = {"_id":pet_data[0], "name": pet_data[1], "type":pet_data[2], "source":pet_data[3], "faction":"Factionless"}
     live_data["pets"][pet_data[0]] = Pet(logger, **kwargs)
 
@@ -458,6 +571,9 @@ def setLivePets(live_data, pet_data, logger):
 
 def setLiveClasses(live_data, class_data, logger):
     from classes import Class
+
+    print(" "*100, end="\r")
+    print("Setting live Classes".format(section[0], section[1]), end="\r")
 
     kwargs = {"_id":class_data[0], "name": class_data[1], "subclasses":{}}
     if "classes" in live_data: live_data["classes"][class_data[0]] = Class(logger, **kwargs)
@@ -469,6 +585,9 @@ def setLiveClasses(live_data, class_data, logger):
 def setLiveSubclasses(live_data, subclass_data, logger):
     from classes import Subclass
 
+    print(" "*100, end="\r")
+    print("Setting live Subclasses".format(section[0], section[1]), end="\r")
+
     kwargs = {"class_id":subclass_data[0], "subclass_id":subclass_data[1], "name": subclass_data[2]}
     live_data["classes"][subclass_data[0]].subclasses[subclass_data[1]] = Subclass(logger, **kwargs)
 
@@ -477,6 +596,9 @@ def setLiveSubclasses(live_data, subclass_data, logger):
 
 def setLiveItems(db, live_data, item_data, logger):
     from items import Item
+
+    print(" "*100, end="\r")
+    print("Setting live Items".format(section[0], section[1]), end="\r")
 
     data = db.get("SELECT sum(quantity)as quantity, sum(quantity * unit_price) as price from soldauctions where item_id = %s"%(item_data[0]), logger)
     sold = data[0]
@@ -521,20 +643,29 @@ def setLiveItems(db, live_data, item_data, logger):
 def setLiveAuctions(live_data, auction_data, logger, request):
     from auctions import Auction
 
+    print(" "*100, end="\r")
+    print("Setting live Auctions".format(section[0], section[1]), end="\r")
+
     kwargs = {"realm_id":auction_data[0], "_id":auction_data[1], "item_id":auction_data[2], "pet_id":auction_data[3], "quantity":auction_data[4], "unit_price":auction_data[5], "time_left":auction_data[6], "bid":auction_data[7], "buyout":auction_data[8], "time_posted":auction_data[9], "last_updated":auction_data[10]}
     realm_id = auction_data[0]
     auction_id = auction_data[1]
-    if "auctions" in live_data:
-        if realm_id in live_data["auctions"]:
-            live_data["auctions"][realm_id][auction_id] = Auction(live_data, logger, request=request, **kwargs)
-        else:
-            live_data["auctions"][realm_id] = {}
-            live_data["auctions"][realm_id][auction_id] = Auction(live_data, logger, request=request, **kwargs)
-    else:
+
+    unset_auctions_live_data = "auctions" not in live_data
+    unset_realm_auctions_live_data = not unset_auctions_live_data and realm_id not in live_data["auctions"]
+
+
+    if unset_auctions_live_data:
         live_data["auctions"] = {}
         live_data["auctions"][realm_id] = {}
         live_data["auctions"][realm_id][auction_id] = Auction(live_data, logger, request=request, **kwargs)
+        return live_data["auctions"]
 
+    if unset_realm_auctions_live_data:
+        live_data["auctions"][realm_id] = {}
+        live_data["auctions"][realm_id][auction_id] = Auction(live_data, logger, request=request, **kwargs)
+        return live_data["auctions"]
+
+    live_data["auctions"][realm_id][auction_id] = Auction(live_data, logger, request=request, **kwargs)
     return live_data["auctions"]
 
 
@@ -545,37 +676,43 @@ def setLiveData(realm_id, db, logger, request):
     data = db.get("SELECT * from mounts", logger, True)
     if len(data) > 0:
         #for mount in data: setLiveMounts(live_data, mount)
-        with concurrent.futures.ThreadPoolExecutor() as exe:
-            [exe.submit(setLiveMounts, live_data, mount, logger) for mount in data]
-    else: live_data["mounts"] = {}
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as exe:
+                [exe.submit(setLiveMounts, live_data, mount, logger) for mount in data]
+        except Exception as e: print(e)
 
     # set pets
     data = db.get("SELECT * from pets", logger, True)
     if len(data) > 0:
         #for pet in data: setLivePets(live_data, pet, logger)
-        with concurrent.futures.ThreadPoolExecutor() as exe:
-            [exe.submit(setLivePets, live_data, pet, logger) for pet in data]
-    else: live_data["pets"] = {}
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as exe:
+                [exe.submit(setLivePets, live_data, pet, logger) for pet in data]
+        except Exception as e: print(e)
 
     # set classes
     data = db.get("SELECT * from classes", logger, True)
     if len(data) > 0:
-        with concurrent.futures.ThreadPoolExecutor() as exe:
-            [exe.submit(setLiveClasses, live_data, live_class, logger) for live_class in data]
-    else: live_data["classes"] = {}
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as exe:
+                [exe.submit(setLiveClasses, live_data, live_class, logger) for live_class in data]
+        except Exception as e: print(e)
 
     # set subclasses
     data = db.get("SELECT * from subclasses", logger, True)
     if len(data) > 0:
-        with concurrent.futures.ThreadPoolExecutor() as exe:
-            [exe.submit(setLiveSubclasses, live_data, subclass, logger) for subclass in data]
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as exe:
+                [exe.submit(setLiveSubclasses, live_data, subclass, logger) for subclass in data]
+        except Exception as e: print(e)
 
     # set items
     data = db.get("SELECT * from items", logger, True)
     if len(data) > 0:
-        with concurrent.futures.ThreadPoolExecutor() as exe:
-            [exe.submit(setLiveItems, db, live_data, item, logger) for item in data]
-    else: live_data["items"] = {}
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as exe:
+                [exe.submit(setLiveItems, db, live_data, item, logger) for item in data]
+        except Exception as e: print(e)
 
     # set auctions
     border = datetime.datetime.now() - datetime.timedelta(hours=24)

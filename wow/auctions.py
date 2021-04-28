@@ -102,11 +102,19 @@ class Auction():
 
 
     def update(self, live_data, previous_auctions, update_data, insert_data, existing, logger):
-        """Updating live_data, update_data dictionaries and possibly insert_data"""
+        """
+            Updating an Auction object.
+            If auction is still active at t+1 we need to check if it is partially sold.
+            Afterwards we remove the auction with equal id from t so the new one can take its place.
+            If auction has fewer quantity, we know the auction got partially sold.
+            We then create a Soldauction.
+            Finally we add auction to update dictionary to be updated.
+        """
         # calculate sold_quantity, new buyout of sold_quantity and bid of sold_quantity
         sold_quantity = existing.quantity - self.quantity
         buyout = existing.unit_price * sold_quantity
-        bid = existing.bid * sold_quantity
+        bid = -1
+        if existing.bid > -1: bid = existing.bid / existing.quantity * sold_quantity
 
         set_realm_update_data_auctions = "auctions" in update_data and self.realm_id in update_data["auctions"]
         unset_realm_update_data_auctions = "auctions" in update_data and self.realm_id not in update_data["auctions"]
@@ -118,8 +126,8 @@ class Auction():
 
         if sold_quantity > 0:
             # create sold_auction
-            args = (self, self.realm_id, self.id, existing.item_id, self.pet_id, sold_quantity, self.unit_price, self.time_left, bid, buyout, self.time_posted, True)
-            sold_auction = SoldAuction(insert_data, update_data, logger, *args)
+            args = (self, self.realm_id, self.id, self.item_id, self.pet_id, sold_quantity, self.unit_price, self.time_left, bid, buyout, self.time_posted, True)
+            sold_auction = SoldAuction(live_data, insert_data, update_data, logger, *args)
 
         # remove auction_id from previous_auctions
         del previous_auctions[self.realm_id][self.id]
@@ -142,13 +150,13 @@ class Auction():
 
 class SoldAuction():
     """docstring"""
-    def __init__(self, insert_data, update_data, logger, *args):
+    def __init__(self, live_data, insert_data, update_data, logger, *args):
         """Constructor for sold auctions. Takes in 1 argument:
             :arg *args: list"""
 
         self.auction = args[0]
-        self.id = args[2]
         self.realm_id = args[1]
+        self.id = args[2]
         self.item_id = args[3]
         self.pet_id = args[4]
         self.quantity = args[5]
@@ -159,29 +167,23 @@ class SoldAuction():
         self.time_posted = args[10]
         self.time_sold = setTimeSold(posted=self.time_posted)
         self.partial = args[11]
-        self.insert(insert_data, update_data, logger)
+        self.insert(live_data, insert_data, update_data, logger)
 
 
-    def insert(self, insert_data, update_data, logger):
+    def insert(self, live_data, insert_data, update_data, logger):
         """updates sold_data. Takes in 2 arguments:
             :arg insert_data: dict
             :arg update_data: dict"""
 
         from functions import isValidSoldAuction
 
-
         item = self.auction.Item
-        try:item.sold += self.quantity
-        except: return
-        item.price += self.quantity * self.unit_price
-        temp_mean = item.price / self.quantity
-        new_mean = not temp_mean == item.mean_price
+
         set_sold_auctions_insert_data = "sold_auctions" in insert_data
         set_realm_insert_data_sold_auctions = set_sold_auctions_insert_data and self.realm_id in insert_data["sold_auctions"]
 
 
         if not set_sold_auctions_insert_data:
-            logger.log(True, "sold_auctions not in insert_data", timestamped=False, level_display=False)
             insert_data["sold_auctions"] = {}
             insert_data["sold_auctions"][self.realm_id] = []
 
@@ -190,13 +192,14 @@ class SoldAuction():
 
         if self.partial:
             insert_data["sold_auctions"][self.realm_id].append(self)
-            item.mean_price = temp_mean
-            item.update(update_data, insert_data, logger)
-            return
+            return item.updateMean(self, update_data, insert_data, logger)
 
-        auctions_to_check = [insert_data["sold_auctions"][self.realm_id][x] for x in range(len(insert_data["sold_auctions"][self.realm_id])) if insert_data["sold_auctions"][self.realm_id][x].auction.Item.id == self.auction.Item.id]
+        auctions_to_check = [
+                                insert_data["sold_auctions"][self.realm_id][x]
+                                for x in range(len(insert_data["sold_auctions"][self.realm_id]))
+                                if insert_data["sold_auctions"][self.realm_id][x].auction.Item.id == self.auction.Item.id
+                            ]
 
-        if isValidSoldAuction(self, auctions_to_check, logger):
+        if isValidSoldAuction(live_data, self, auctions_to_check, logger):
             insert_data["sold_auctions"][self.realm_id].append(self)
-            item.mean_price = temp_mean
-            item.update(update_data, insert_data, logger)
+            item.updateMean(self, update_data, insert_data, logger)

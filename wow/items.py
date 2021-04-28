@@ -151,3 +151,15 @@ class Item:
 
         elif new_item_to_update:
             update_data["items"].append(self)
+
+
+    def updateMean(self, soldauction, update_data, insert_data, logger):
+        try: self.sold += soldauction.quantity
+        except:
+            logger.log(True, "item {} has not attribute sold".format(self.id))
+        self.price += soldauction.buyout
+        temp_mean = self.price / self.sold
+        new_mean = temp_mean != self.mean_price
+        if new_mean:
+            self.mean_price = temp_mean
+            self.update(update_data, insert_data, logger)
