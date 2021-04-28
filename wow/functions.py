@@ -459,6 +459,7 @@ def updateData(db, update_data, realm_id, logger):
 
     auctions_to_update = "auctions" in update_data and realm_id in update_data["auctions"] and len(update_data["auctions"][realm_id]) > 0
     items_to_update = "items" in update_data and len(update_data["items"]) > 0
+    realms_to_update = "realms" in update_data and len(update_data["realms"]) > 0
 
     if auctions_to_update:
         end = len(update_data["auctions"][realm_id])
@@ -467,6 +468,9 @@ def updateData(db, update_data, realm_id, logger):
     if items_to_update:
         end = len(update_data["items"])
         createUpdateItemsQuery(update_data, db, (0, end), logger)
+
+    if realms_to_update:
+        for realm in realms_to_update: realm.update(db, logger)
 
 
 

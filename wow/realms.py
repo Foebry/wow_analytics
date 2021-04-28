@@ -15,6 +15,7 @@ class Realm:
         """
         self.id = _id
         self.name = name
+        self.auction_data = None
 
         query = "select * from responses where realm_id = {}".format(self.id)
         not_set = db.get(query, logger) == None
@@ -28,12 +29,12 @@ class Realm:
 
 
 
-    def update(self, response, db, logger):
+    def update(self, db, logger):
         query = """
                     update responses
                         set previous_response = "{}"
                         where realm_id = {}
-                """.format(data, self.id)
+                """.format(self.last_modified, self.id)
         db.update(query, logger)
 
 
@@ -41,6 +42,6 @@ class Realm:
         query = """
                     insert into responses(realm_id)
                         values({})
-                """.format(response.headers["last-modified"], self.id)
+                """.format(self.id)
 
         db.write(query, logger)

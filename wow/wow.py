@@ -75,7 +75,7 @@ def main(realm):
 
     while True:
         # make request
-        response = request.getAuctionData(realm, db, logger)
+        response = request.getAuctionData(realm, update_data, db, logger)
         if response:
             logger.log(msg="\n\n"+"*"*100, timestamped=False, level_display=False)
             logger.log(msg=f"New data of {len(response)} auctions")

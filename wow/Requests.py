@@ -34,7 +34,7 @@ class Request():
 
 
 
-    def getAuctionData(self, realm, db, logger):
+    def getAuctionData(self, realm, update_data, db, logger):
         """getting auction data"""
         endpoint = "connected-realm/{}/auctions".format(realm.id)
 
@@ -48,7 +48,8 @@ class Request():
         if response.headers["last-modified"] == realm.last_modified:
             return []
 
-        realm.update(response, db, logger)
+        if "realms" in update_data: update_data["realms"].append(self)
+        else: update_data["realms"] = [self]
 
         return self.handleResponse(response, self.getAuctionData, (realm.id, logger), logger, ('auctions',))
 
