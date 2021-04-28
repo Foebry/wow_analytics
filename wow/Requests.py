@@ -34,18 +34,23 @@ class Request():
 
 
 
-    def getAuctionData(self, realm_id, logger):
+    def getAuctionData(self, realm, db, logger):
         """getting auction data"""
-        endpoint = "connected-realm/{}/auctions".format(realm_id)
+        endpoint = "connected-realm/{}/auctions".format(realm.id)
 
         print(" "*100, end="\r")
         print("requesting auction data", end="\r")
 
         try: response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getAuctionData, (realm_id, logger))
+            return self.reconnect(self.getAuctionData, (realm.id, logger))
 
-        return self.handleResponse(response, self.getAuctionData, (realm_id, logger), logger, ('auctions',))
+        if response.headers["last-modified"] == realm.last_modified:
+            return []
+
+        realm.update(response, db, logger)
+
+        return self.handleResponse(response, self.getAuctionData, (realm.id, logger), logger, ('auctions',))
 
 
 

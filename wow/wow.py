@@ -21,13 +21,14 @@ def setup(test):
     logger.log(msg="*"*65+"Started new session!"+"*"*65, timestamped=False, level_display=False)
     logger.log(msg="*"*150, timestamped=False, level_display=False)
 
-    realms = [Realm(_id, REALMS[_id]) for _id in REALMS]
-
     if test:
         db = Database(DATABASE_TEST, logger)
+        realms = [Realm(_id, REALMS[_id], db, logger) for _id in REALMS]
         return logger, realms, db
 
     db = Database(DATABASE, logger)
+    realms = [Realm(_id, REALMS[_id], db, logger) for _id in REALMS]
+
     return logger, realms, db
 
 
@@ -49,12 +50,13 @@ def init(realm, live_data=None, start=False):
     from functions import setLiveData
     from Requests import Request
     from config import CREDENTIALS
+
     if start:
         request = Request(CREDENTIALS, logger)
         live_data = setLiveData(realm.id, db, logger, request)
         temp = live_data["auctions"][realm.id].copy()
         previous_auctions = {realm.id:temp}
-        previous_response = {}
+        previous_response = realm.last_modified
     else:
         temp = live_data["auctions"][realm.id].copy()
         previous_auctions = {realm.id:temp}
@@ -73,11 +75,10 @@ def main(realm):
 
     while True:
         # make request
-        response = request.getAuctionData(realm.id, logger)
-        if not response == previous_response:
+        response = request.getAuctionData(realm, db, logger)
+        if response:
             logger.log(msg="\n\n"+"*"*100, timestamped=False, level_display=False)
             logger.log(msg=f"New data of {len(response)} auctions")
-            previous_response = response
 
             # set auction data
             setAuctionData(realm.id, response, live_data, insert_data, update_data, previous_auctions, request, db, logger)

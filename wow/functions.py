@@ -544,107 +544,112 @@ def insertData(db, live_data, insert_data, update_data, previous_auctions, realm
         logger.log(msg="Inserted %s item_price changes" %insert_strings)
 
 
-def setLiveMounts(live_data, mount_data, logger):
+def setLiveMount(live_data, mount_data, logger):
     from mounts import Mount
 
-    print(" "*100, end="\r")
-    print("Setting live Mounts".format(section[0], section[1]), end="\r")
+    _id = mount_data[0]
+    name = mount_data[1]
+    source = mount_data[2]
+    faction = mount_data[3]
 
-    kwargs = {"_id":mount_data[0], "name":mount_data[1], "source":mount_data[2], "faction":mount_data[3]}
-    if "mounts" in live_data: live_data["mounts"][mount_data[0]] = Mount(logger, **kwargs)
-    else: live_data["mounts"] = {mount_data[0]:Mount(logger, **kwargs)}
+    kwargs = {"_id":_id, "name":name, "source":source, "faction":faction}
 
-    return live_data["mounts"]
+    live_data["mounts"][_id] = Mount(logger, **kwargs)
 
 
 def setLivePets(live_data, pet_data, logger):
     from pets import Pet
 
-    print(" "*100, end="\r")
-    print("Setting live Pets".format(section[0], section[1]), end="\r")
+    _id = pet_data[0]
+    name = pet_data [1]
+    type = pet_data[2]
+    source = pet_data[3]
+    faction = pet_data[4]
 
-    kwargs = {"_id":pet_data[0], "name": pet_data[1], "type":pet_data[2], "source":pet_data[3], "faction":"Factionless"}
-    live_data["pets"][pet_data[0]] = Pet(logger, **kwargs)
+    kwargs = {"_id":_id, "name": name, "type":type, "source":source, "faction":faction}
 
-    return live_data["pets"]
+    live_data["pets"][_id] = Pet(logger, **kwargs)
 
 
 def setLiveClasses(live_data, class_data, logger):
     from classes import Class
 
-    print(" "*100, end="\r")
-    print("Setting live Classes".format(section[0], section[1]), end="\r")
+    _id = class_data[0]
+    name = class_data[1]
 
-    kwargs = {"_id":class_data[0], "name": class_data[1], "subclasses":{}}
-    if "classes" in live_data: live_data["classes"][class_data[0]] = Class(logger, **kwargs)
-    else: live_data["classes"] = {class_data[0]: Class(logger, **kwargs)}
+    kwargs = {"_id":_id, "name": name, "subclasses":{}}
 
-    return live_data["classes"]
+    live_data["classes"][_id] = Class(logger, **kwargs)
 
 
 def setLiveSubclasses(live_data, subclass_data, logger):
     from classes import Subclass
 
-    print(" "*100, end="\r")
-    print("Setting live Subclasses".format(section[0], section[1]), end="\r")
+    class_id = subclass_data[0]
+    _id = subclass_data[1]
+    name = subclass_data[2]
 
-    kwargs = {"class_id":subclass_data[0], "subclass_id":subclass_data[1], "name": subclass_data[2]}
-    live_data["classes"][subclass_data[0]].subclasses[subclass_data[1]] = Subclass(logger, **kwargs)
+    kwargs = {"class_id":class_id, "subclass_id":_id, "name": name}
 
-    return live_data["classes"]
+    live_data["classes"][class_id].subclasses[_id] = Subclass(logger, **kwargs)
 
 
-def setLiveItems(db, live_data, item_data, logger):
+def setLiveItem(db, live_data, item_data, logger):
     from items import Item
 
-    print(" "*100, end="\r")
-    print("Setting live Items".format(section[0], section[1]), end="\r")
-
-    data = db.get("SELECT sum(quantity)as quantity, sum(quantity * unit_price) as price from soldauctions where item_id = %s"%(item_data[0]), logger)
-    sold = data[0]
-    price = data[1]
+    _id = item_data[0]
+    pet_id = item_data[1]
+    mount_id = item_data[2]
+    level = item_data[3]
+    name = item_data[4]
+    quality = item_data[5]
+    item_class = item_data[6]
+    item_subclass = item_data[7]
+    type = item_data[8]
+    subtype = item_data[9]
+    mean_price = item_data[10]
+    sold = item_data[11]
+    price = item_data[12]
     if sold is None: sold = 0.0
     if price is None: price = 0.0
-    kwargs = {"_id":item_data[0], "pet":{"_id":item_data[1]}, "mount":{"_id":item_data[2]}, "level": item_data[3], "name":item_data[4], "quality":item_data[5], "item_class":item_data[6], "item_subclass":item_data[7], "type":item_data[8], "subtype":item_data[9], "mean_price":item_data[10], "sold":sold, "price":price}
 
-    is_item = kwargs["pet"]["_id"] == 0 and kwargs["mount"]["_id"] == 0
-    is_pet = kwargs["_id"] == 82800
-    is_mount = kwargs["pet"]["_id"] == 0 and not kwargs["mount"]["_id"] == 0
-    existing_class = kwargs["item_class"] in live_data["classes"]
-    existing_subclass = kwargs["item_class"] in live_data["classes"] and kwargs["item_subclass"] in live_data["classes"][kwargs["item_class"]].subclasses
-    existing_pet = is_pet and kwargs["pet"]["_id"] in live_data["pets"]
-    existing_mount = is_mount and kwargs["mount"]["_id"] in live_data["mounts"]
+    kwargs = {
+                "_id":_id, "pet":{"_id":pet_id}, "mount":{"_id":mount_id}, "level":level,
+                "name":name, "quality":quality, "item_class":item_class,
+                "item_subclass":item_subclass, "type":type, "subtype":subtype,
+                "mean_price":mean_price, "sold":sold, "price":price
+            }
 
+    is_item = pet_id == 0 and mount_id == 0
+    is_pet = _id == 82800
+    is_mount = pet_id == 0 and not mount_id == 0
+    existing_class = item_class in live_data["classes"]
+    existing_subclass = existing_class and item_subclass in live_data["classes"][item_class].subclasses
+    existing_pet = is_pet and pet_id in live_data["pets"]
+    existing_mount = is_mount and mount_id in live_data["mounts"]
 
-    if existing_class: kwargs["Class"] = live_data["classes"][kwargs["item_class"]]
+    if existing_class: kwargs["Class"] = live_data["classes"][item_class]
 
-    if existing_subclass: kwargs["Subclass"] = live_data["classes"][kwargs["item_class"]].subclasses[kwargs["item_subclass"]]
+    if existing_subclass: kwargs["Subclass"] = live_data["classes"][item_class].subclasses[item_subclass]
 
     if is_item:
         kwargs["Pet"] = None
         kwargs["Mount"] = None
-        live_data["items"][item_data[0]] = Item(logger, **kwargs)
+        live_data["items"][_id] = Item(logger, **kwargs)
 
     elif existing_pet:
-        kwargs["Pet"] = live_data["pets"][kwargs["pet"]["_id"]]
+        kwargs["Pet"] = live_data["pets"][pet_id]
         kwargs["Mount"] = None
-        live_data["items"][item_data[0]] = {}
-        live_data["items"][item_data[0]][kwargs["pet"]["_id"]] = Item(logger, **kwargs)
+        live_data["items"][_id][pet_id] = Item(logger, **kwargs)
 
     elif existing_mount:
         kwargs["Pet"] = None
-        kwargs["Mount"] = live_data["mounts"][kwargs["mount"]["_id"]]
-        live_data["items"][item_data[0]] = Item(logger, **kwargs)
-
-
-    return live_data["items"]
+        kwargs["Mount"] = live_data["mounts"][mount_id]
+        live_data["items"][_id] = Item(logger, **kwargs)
 
 
 def setLiveAuctions(live_data, auction_data, logger, request):
     from auctions import Auction
-
-    print(" "*100, end="\r")
-    print("Setting live Auctions".format(section[0], section[1]), end="\r")
 
     kwargs = {"realm_id":auction_data[0], "_id":auction_data[1], "item_id":auction_data[2], "pet_id":auction_data[3], "quantity":auction_data[4], "unit_price":auction_data[5], "time_left":auction_data[6], "bid":auction_data[7], "buyout":auction_data[8], "time_posted":auction_data[9], "last_updated":auction_data[10]}
     realm_id = auction_data[0]
@@ -670,7 +675,7 @@ def setLiveAuctions(live_data, auction_data, logger, request):
 
 
 def setLiveData(realm_id, db, logger, request):
-    live_data = {"auctions":{realm_id:{}}, "items":{}, "classes":{}, "pets":{}, "mounts":{}}
+    live_data = {"auctions":{realm_id:{}}, "items":{82800:{}}, "classes":{}, "pets":{}, "mounts":{}}
 
     # set mounts
     data = db.get("SELECT * from mounts", logger, True)
@@ -678,8 +683,10 @@ def setLiveData(realm_id, db, logger, request):
         #for mount in data: setLiveMounts(live_data, mount)
         try:
             with concurrent.futures.ThreadPoolExecutor() as exe:
-                [exe.submit(setLiveMounts, live_data, mount, logger) for mount in data]
+                [exe.submit(setLiveMount, live_data, mount, logger) for mount in data]
         except Exception as e: print(e)
+    msg = "Done setting live mounts; {} live mounts".format(len(live_data["mounts"]))
+    logger.log(msg=msg)
 
     # set pets
     data = db.get("SELECT * from pets", logger, True)
@@ -689,6 +696,8 @@ def setLiveData(realm_id, db, logger, request):
             with concurrent.futures.ThreadPoolExecutor() as exe:
                 [exe.submit(setLivePets, live_data, pet, logger) for pet in data]
         except Exception as e: print(e)
+    msg = "Done setting live pets; {} live pets".format(len(live_data["pets"]))
+    logger.log(msg=msg)
 
     # set classes
     data = db.get("SELECT * from classes", logger, True)
@@ -697,31 +706,56 @@ def setLiveData(realm_id, db, logger, request):
             with concurrent.futures.ThreadPoolExecutor() as exe:
                 [exe.submit(setLiveClasses, live_data, live_class, logger) for live_class in data]
         except Exception as e: print(e)
+    msg = "Done setting live classes; {} live classes".format(len(live_data["classes"]))
 
     # set subclasses
-    data = db.get("SELECT * from subclasses", logger, True)
+    query = "SELECT * from subclasses"
+    data = db.get(query, logger, True)
     if len(data) > 0:
         try:
             with concurrent.futures.ThreadPoolExecutor() as exe:
                 [exe.submit(setLiveSubclasses, live_data, subclass, logger) for subclass in data]
         except Exception as e: print(e)
+    subclasses = [x for x in live_data["classes"] for _ in live_data["classes"][x].subclasses]
+    msg = "Done setting live subclasses; {} live subclasses".format(len(subclasses))
+    logger.log(msg=msg)
 
     # set items
-    data = db.get("SELECT * from items", logger, True)
+    query = """
+                select id, items.pet_id, mount_id, level, name, quality, class_id, subclass_id, type, subtype, mean_price, sum(quantity) as sold, sum(quantity * unit_price) as price
+                from items
+                left join soldauctions on soldauctions.item_id = items.id
+	               and soldauctions.pet_id = items.pet_id
+               group by items.id, items.pet_id
+               order by items.id, items.pet_id
+           """
+    data = db.get(query, logger, True)
     if len(data) > 0:
         try:
             with concurrent.futures.ThreadPoolExecutor() as exe:
-                [exe.submit(setLiveItems, db, live_data, item, logger) for item in data]
+                [exe.submit(setLiveItem, db, live_data, item, logger) for item in data]
         except Exception as e: print(e)
+    items = len(live_data["items"]) - 1
+    pets = len(live_data["items"][82800])
+    total_items = items + pets
+    msg = "Done setting live items; {} live items of which {} items and {} pets".format(total_items, items-1, pets)
+    logger.log(msg=msg)
 
     # set auctions
     border = datetime.datetime.now() - datetime.timedelta(hours=24)
-    query = "SELECT * from auctionhouses where last_updated > %s" %f'"{border}"'
+    query = """
+                select * from auctionhouses
+                   where not auction_id in (
+	                 select auction_id from soldauctions
+                     where partial = 0)
+            """.format(border)
     data = db.get(query, logger, True)
     if len(data) > 0:
         try:
             with concurrent.futures.ThreadPoolExecutor() as exe:
                 [exe.submit(setLiveAuctions, live_data, auction, logger, request) for auction in data]
         except Exception as err: logger.log(msg=err, err=err)
+    msg = "Done setting live auctions; {} live auctions".format(len(live_data["auctions"][realm_id]))
+    logger.log(msg=msg)
 
     return live_data
