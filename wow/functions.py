@@ -470,7 +470,7 @@ def updateData(db, update_data, realm_id, logger):
         createUpdateItemsQuery(update_data, db, (0, end), logger)
 
     if realms_to_update:
-        for realm in realms_to_update: realm.update(db, logger)
+        for realm in update_data["realms"]: realm.update(db, logger)
 
 
 

@@ -48,8 +48,10 @@ class Request():
         if response.headers["last-modified"] == realm.last_modified:
             return []
 
-        if "realms" in update_data: update_data["realms"].append(self)
-        else: update_data["realms"] = [self]
+        realm.last_modified = response.headers["last-modified"]
+
+        if "realms" in update_data: update_data["realms"].append(realm)
+        else: update_data["realms"] = [realm]
 
         return self.handleResponse(response, self.getAuctionData, (realm.id, logger), logger, ('auctions',))
 
