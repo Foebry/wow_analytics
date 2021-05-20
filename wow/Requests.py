@@ -8,12 +8,19 @@ class Request():
         """Request constructor"""
         self.client_id = data['client_id']
         self.client_secret = data['client_secret']
-        self.access_token = self.getAccesToken(logger)
-        self.endpoint = "https://eu.api.blizzard.com/data/wow/{}?namespace={}-eu&locale=en_GB{}&access_token=%s"%self.access_token
+        self.access_token = None
+        self.endpoint = None
+        self.setAccessToken(logger)
 
 
 
-    def getAccesToken(self, logger):
+    def setEndpoint(self):
+
+        return "https://eu.api.blizzard.com/data/wow/{}?namespace={}-eu&locale=en_GB{}&access_token=%s"%self.access_token
+
+
+
+    def setAccessToken(self, logger):
         """getting access_token"""
 
         # setting required data
@@ -30,7 +37,8 @@ class Request():
             return self.reconnect(self.getAccesToken, logger, logger)
 
         # checking response
-        return self.handleResponse(response, self.getAccesToken, logger, logger, ('access_token',))
+        self.access_token = self.handleResponse(response, self.setAccessToken, logger, logger, ('access_token',))
+        self.endpoint = self.setEndpoint()
 
 
 
@@ -41,19 +49,26 @@ class Request():
         print(" "*100, end="\r")
         print("requesting auction data", end="\r")
 
-        try: response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
+        try:
+            response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getAuctionData, (realm.id, logger))
+            return self.reconnect(self.getAuctionData, (realm, update_data, db, logger))
 
-        if response.headers["last-modified"] == realm.last_modified:
-            return []
 
-        realm.last_modified = response.headers["last-modified"]
+        auctions = self.handleResponse(response, self.getAuctionData, (realm, update_data, db, logger), logger, ('auctions',))
 
-        if "realms" in update_data: update_data["realms"].append(realm)
-        else: update_data["realms"] = [realm]
+        if auctions:
+            if response.headers['last-modified'] == realm.last_modified:
+                return []
 
-        return self.handleResponse(response, self.getAuctionData, (realm.id, logger), logger, ('auctions',))
+            realm.last_modified = response.headers['last-modified']
+
+            if 'realms' in update_data:
+                update_data["realms"].append(realm)
+                return auctions
+
+            update_data['realms'] = [realm]
+            return auctions
 
 
 
@@ -176,44 +191,57 @@ class Request():
 
 
 
+    def waitTillResponsive(unresponsive, args):
+        import os
+
+        ips = ('185.60.112.157', '185.60.112.158', '185.60.114.159')
+        response = 0
+
+        # already changed this section. Letting old code run to see which server will fail when server unresponsive.
+        # response 0 means nothing wrong
+        # response 1 meanse something wrong
+        while unresponsive:
+            for ip in ips: response += os.system("ping {}".format(ip))
+
+            if response == 0: unresponsive = False
+            response = 0
+
+
+
+
     def handleResponse(self, response, func, args, logger, keys=None):
-        more_keys = keys and len(keys)>1 and response.status_code == 200
-        single_key = keys and response.status_code == 200
-        no_keys = not keys and response.status_code == 200
+        success = response.status_code == 200
         unauthorized = response.status_code == 401
         not_found = response.status_code == 404
+        unresponsive = response.status_code == 504
 
-        # traversing through json file -> wanted data is embedded
-        if more_keys:
-            data = response.json()
-            for key in keys:
-                try: data = data[key]
-                except KeyError as error:
-                    logger.log(msg=error, err=error)
-                    return False
-
-                except IndexError as error:
-                    # some api responses return empty json instead of 404
-                    if func == self.getMount_id_by_name: return False
-
-                    logger.log(msg=error, err=error)
-                    return False
-                except Exception as exception:
-                    logger.log(msg=exception, err=exception)
-                    return False
-            return data
-
-        # getting wanted data
-        elif single_key: return response.json()[keys[0]]
-
-        # returning full data
-        elif no_keys: return response.json()
-
+        if success:
+            return self.traverseResponse(response, keys)
 
         elif unauthorized:
-            self.access_token = self.getAccesToken(logger)
-            func(*args)
+            self.access_token = self.setAccessToken(logger)
+            return func(*args)
 
         elif not_found: return False
 
+        elif unresponsive:
+            self.waitTillResponsive(unresponsive)
+            return func(*args)
+
         else: logger.log(msg=f'{response.status_code} - {response}')
+
+
+
+    def traverseResponse(self, response, keys):
+
+        data = response.json()
+
+        if keys is None:
+            return data
+
+        for key in keys:
+            if key not in data:
+                return False
+            data = data[key]
+
+        return data

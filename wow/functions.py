@@ -8,8 +8,8 @@ import concurrent.futures
 def isValidSoldAuction(live_data, sold_auction, auctions_to_check, logger):
     item = sold_auction.auction.Item
     try: not_overpriced = item.mean_price == 0 or sold_auction.unit_price < 5*item.mean_price and sold_auction.unit_price < 9999999.9999
-    except:
-        logger.log(True, msg="item {} has no mean_price".format(item.id))
+    except Exception as e:
+        logger.log(True, msg="item = {}".format(sold_auction.auction.Item))
         return
     valid = sold_auction.time_left != "SHORT" and not_overpriced
 
@@ -652,29 +652,31 @@ def setLiveItem(db, live_data, item_data, logger):
         live_data["items"][_id] = Item(logger, **kwargs)
 
 
-def setLiveAuctions(live_data, auction_data, logger, request):
+def setLiveAuction(live_data, auction_data, logger):
     from auctions import Auction
 
-    kwargs = {"realm_id":auction_data[0], "_id":auction_data[1], "item_id":auction_data[2], "pet_id":auction_data[3], "quantity":auction_data[4], "unit_price":auction_data[5], "time_left":auction_data[6], "bid":auction_data[7], "buyout":auction_data[8], "time_posted":auction_data[9], "last_updated":auction_data[10]}
     realm_id = auction_data[0]
-    auction_id = auction_data[1]
+    _id = auction_data[1]
+    item_id = auction_data[2]
+    pet_id = auction_data[3]
+    quantity = auction_data[4]
+    unit_price = auction_data[5]
+    time_left = auction_data[6]
+    bid = auction_data[7]
+    buyout = auction_data[8]
+    time_posted = auction_data[9]
+    last_updated = auction_data[10]
+    kwargs = {
+                "realm_id":realm_id, "_id":_id, "item_id":item_id, "pet_id":pet_id, "quantity":quantity, "unit_price":unit_price,
+                "time_left":time_left, "bid":bid, "buyout":buyout, "time_posted":time_posted, "last_updated":last_updated
+                }
+    try: kwargs["Item"] = live_data["items"][item_id]
+    except: kwargs["Item"] = None
 
-    unset_auctions_live_data = "auctions" not in live_data
-    unset_realm_auctions_live_data = not unset_auctions_live_data and realm_id not in live_data["auctions"]
+    if item_id == 82800:
+        kwargs["Item"] = live_data["items"][item_id][pet_id]
 
-
-    if unset_auctions_live_data:
-        live_data["auctions"] = {}
-        live_data["auctions"][realm_id] = {}
-        live_data["auctions"][realm_id][auction_id] = Auction(live_data, logger, request=request, **kwargs)
-        return live_data["auctions"]
-
-    if unset_realm_auctions_live_data:
-        live_data["auctions"][realm_id] = {}
-        live_data["auctions"][realm_id][auction_id] = Auction(live_data, logger, request=request, **kwargs)
-        return live_data["auctions"]
-
-    live_data["auctions"][realm_id][auction_id] = Auction(live_data, logger, request=request, **kwargs)
+    live_data["auctions"][realm_id][_id] = Auction(live_data, logger, **kwargs)
     return live_data["auctions"]
 
 
@@ -711,6 +713,7 @@ def setLiveData(realm_id, db, logger, request):
                 [exe.submit(setLiveClasses, live_data, live_class, logger) for live_class in data]
         except Exception as e: print(e)
     msg = "Done setting live classes; {} live classes".format(len(live_data["classes"]))
+    logger.log(msg=msg)
 
     # set subclasses
     query = "SELECT * from subclasses"
@@ -726,7 +729,7 @@ def setLiveData(realm_id, db, logger, request):
 
     # set items
     query = """
-                select id, items.pet_id, mount_id, level, name, quality, class_id, subclass_id, type, subtype, mean_price, sum(quantity) as sold, sum(quantity * unit_price) as price
+                select id, items.pet_id, mount_id, level, name, quality, class_id, subclass_id, type, subtype, mean_price, cast(sum(quantity) as double) as sold, sum(quantity * unit_price) as price
                 from items
                 left join soldauctions on soldauctions.item_id = items.id
 	               and soldauctions.pet_id = items.pet_id
@@ -755,10 +758,12 @@ def setLiveData(realm_id, db, logger, request):
             """.format(border)
     data = db.get(query, logger, True)
     if len(data) > 0:
-        try:
-            with concurrent.futures.ThreadPoolExecutor() as exe:
-                [exe.submit(setLiveAuctions, live_data, auction, logger, request) for auction in data]
-        except Exception as err: logger.log(msg=err, err=err)
+        for auction in data:
+            setLiveAuction(live_data, auction, logger)
+        #try:
+        #    with concurrent.futures.ThreadPoolExecutor() as exe:
+        #        [exe.submit(setLiveAuction, live_data, auction, logger) for auction in data]
+        #except Exception as err: logger.log(msg=err, err=err)
     msg = "Done setting live auctions; {} live auctions".format(len(live_data["auctions"][realm_id]))
     logger.log(msg=msg)
 

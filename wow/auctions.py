@@ -20,7 +20,9 @@ class Auction():
             :arg *args: list (optional),
             :arg **kwargs: dict (optional)"""
 
-        if kwargs:
+        rebuild_auction = insert_data is None and kwargs
+
+        if rebuild_auction:
             self.id = kwargs["_id"]
             self.realm_id = kwargs["realm_id"]
             self.item_id = kwargs["item_id"]
@@ -32,18 +34,20 @@ class Auction():
             self.buyout = kwargs["buyout"]
             self.time_posted = kwargs["time_posted"]
             self.last_updated = kwargs["last_updated"]
-        else:
-            self.realm_id = args[0]
-            self.id = args[1]
-            self.item_id = args[2]
-            self.pet_id = args[3]["_id"]
-            self.quantity = args[4]
-            self.unit_price = args[5]
-            self.time_left = args[6]
-            self.bid = args[7]
-            self.buyout = args[8]
-            self.time_posted = setTimePosted(test=test)
-            self.last_updated = self.time_posted
+            self.Item = kwargs["Item"]
+            return
+
+        self.realm_id = args[0]
+        self.id = args[1]
+        self.item_id = args[2]
+        self.pet_id = args[3]["_id"]
+        self.quantity = args[4]
+        self.unit_price = args[5]
+        self.time_left = args[6]
+        self.bid = args[7]
+        self.buyout = args[8]
+        self.time_posted = setTimePosted(test=test)
+        self.last_updated = self.time_posted
 
         first_pet = self.item_id == 82800 and self.item_id not in live_data["items"]
         is_pet = self.item_id == 82800 and self.item_id in live_data["items"]
@@ -76,6 +80,11 @@ class Auction():
             live_data["items"][self.item_id] = {}
             live_data["items"][self.item_id][self.pet_id] = item
             self.Item = item
+
+        if "name" not in vars(self.Item):
+            # could not set item data
+            logger.log(msg="item {} could not be found".format(self.item_id))
+            return
 
         if new_auction:
             live_data["auctions"][self.realm_id][self.id] = self
@@ -126,7 +135,7 @@ class Auction():
 
         if sold_quantity > 0:
             # create sold_auction
-            args = (self, self.realm_id, self.id, self.item_id, self.pet_id, sold_quantity, self.unit_price, self.time_left, bid, buyout, self.time_posted, True)
+            args = (existing, self.realm_id, self.id, self.item_id, self.pet_id, sold_quantity, self.unit_price, self.time_left, bid, buyout, self.time_posted, True)
             sold_auction = SoldAuction(live_data, insert_data, update_data, logger, *args)
 
         # remove auction_id from previous_auctions
@@ -191,6 +200,7 @@ class SoldAuction():
             insert_data["sold_auctions"][self.realm_id] = []
 
         if self.partial:
+            # partially sold auctions will always be considered as sold
             insert_data["sold_auctions"][self.realm_id].append(self)
             return item.updateMean(self, update_data, insert_data, logger)
 
