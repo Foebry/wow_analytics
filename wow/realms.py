@@ -5,7 +5,7 @@
 class Realm:
     """ """
 
-    def __init__(self, _id, name, db, logger):
+    def __init__(self, _id, data, db, logger):
         """
             Realm constructor. Takes in 4 argument
                 :arg: _id -> int
@@ -14,7 +14,8 @@ class Realm:
                 :arg: logger -> obj<Logger>
         """
         self.id = _id
-        self.name = name
+        self.name = data['name']
+        self.output = data['file']
         self.auction_data = None
 
         query = "select * from responses where realm_id = {}".format(self.id)
@@ -45,3 +46,7 @@ class Realm:
                 """.format(self.id)
 
         db.write(query, logger)
+
+
+    def exportAuctionData(self):
+        pass

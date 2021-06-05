@@ -46,14 +46,15 @@ def wait(duration):
 
 
 
-def init(realm, live_data=None, start=False):
+def init(realms=None, start=False, live_data=None, realm=None):
     from functions import setLiveData
     from Requests import Request
     from config import CREDENTIALS
 
     if start:
         request = Request(CREDENTIALS, logger)
-        live_data = setLiveData(realm.id, db, logger, request)
+        live_data = {"auctions":{}, "items":{82800:{}}, "classes":{}, "pets":{}, "mounts":{}}
+        for realm in realms: setLiveData(realm.id, live_data, db, logger, request)
         temp = live_data["auctions"][realm.id].copy()
         previous_auctions = {realm.id:temp}
         previous_response = realm.last_modified
@@ -70,24 +71,27 @@ def init(realm, live_data=None, start=False):
 
 
 
-def main(realm):
-    live_data, insert_data, update_data, previous_auctions, request, previous_response = init(realm, start=True)
+def main():
+    live_data, insert_data, update_data, previous_auctions, request, previous_response = init(realms, start=True)
 
     while True:
-        # make request
-        response = request.getAuctionData(realm, update_data, db, logger)
-        if response:
-            logger.log(msg="\n\n"+"*"*100, timestamped=False, level_display=False)
-            logger.log(msg=f"New data of {len(response)} auctions")
+        for realm in realms:
 
-            # set auction data
-            setAuctionData(realm.id, response, live_data, insert_data, update_data, previous_auctions, request, db, logger)
+            # make request
+            response = request.getAuctionData(realm, update_data, db, logger)
+            if response:
+                logger.log(msg="\n\n"+"*"*100, timestamped=False, level_display=False)
+                logger.log(msg=f"New data of {len(response)} auctions")
 
-            # insert data & update data
-            insertData(db, live_data, insert_data, update_data, previous_auctions, realm.id, logger)
-            updateData(db, update_data, realm.id, logger)
+                # set auction data
+                setAuctionData(realm.id, response, live_data, insert_data, update_data, previous_auctions, request, db, logger)
 
-            _, insert_data, update_data, previous_auctions, _, _ = init(realm, live_data)
+                # insert data & update data
+                insertData(db, live_data, insert_data, update_data, previous_auctions, realm.id, logger)
+                updateData(db, update_data, realm.id, logger)
+                # realm.export(insert_data['items'])
+
+                _, insert_data, update_data, previous_auctions, _, _ = init(realm=realm, live_data=live_data)
 
         # wait
         wait(600)
@@ -99,5 +103,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logger, realms, db = setup(args.test)
 
-    for realm in realms:
-        main(realm)
+    main()

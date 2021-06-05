@@ -58,6 +58,11 @@ class Request():
         auctions = self.handleResponse(response, self.getAuctionData, (realm, update_data, db, logger), logger, ('auctions',))
 
         if auctions:
+            if not 'last-modified' in response.headers:
+                logger.log(True, msg=response.headers)
+                from wow import wait
+                wait(60)
+                return self.getAuctionData(realm, update_data, db, logger)
             if response.headers['last-modified'] == realm.last_modified:
                 return []
 
