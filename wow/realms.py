@@ -49,4 +49,13 @@ class Realm:
 
 
     def exportAuctionData(self):
+        """
+            Method to export new auctiondata to realm corresponding lua file.
+        """
+        # get current lua file.
+
+        # search previous end
+
+        # add new data
+
         pass
