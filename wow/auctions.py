@@ -201,19 +201,11 @@ class SoldAuction():
             insert_data["sold_auctions"][self.realm_id].append(self)
             return item.updateMean(self, update_data, insert_data, logger)
 
-        #auctions_to_check = [
-        #                        insert_data["sold_auctions"][self.realm_id][x]
-        #                        for x in range(len(insert_data["sold_auctions"][self.realm_id]))
-        #                        if insert_data["sold_auctions"][self.realm_id][x].auction.Item.id == self.auction.Item.id
-            #                ]
-        #print(vars(self.realm_id[x].auction.Item))
-
-        auctions_to_check = []
-        for x in range(len(insert_data["sold_auctions"][self.realm_id])):
-            try: appending = insert_data["sold_auctions"][self.realm_id][x].auction.Item.id == self.auction.Item.id
-            except: print(vars(self.auction))
-            if appending:
-                auctions_to_check.append(insert_data["sold_auctions"][self.realm_id][x])
+        auctions_to_check = [
+                                insert_data["sold_auctions"][self.realm_id][x]
+                                for x in range(len(insert_data["sold_auctions"][self.realm_id]))
+                                if insert_data["sold_auctions"][self.realm_id][x].auction.Item.id == self.auction.Item.id
+                        ]
 
         if isValidSoldAuction(live_data, self, auctions_to_check, logger):
             insert_data["sold_auctions"][self.realm_id].append(self)
