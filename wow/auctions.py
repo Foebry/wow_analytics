@@ -81,10 +81,7 @@ class Auction():
             live_data["items"][self.item_id][self.pet_id] = item
             self.Item = item
 
-        if "name" not in vars(self.Item):
-            # could not set item data
-            logger.log(msg="item {} could not be found".format(self.item_id))
-            return
+        else: return
 
         if new_auction:
             live_data["auctions"][self.realm_id][self.id] = self
@@ -208,7 +205,7 @@ class SoldAuction():
                                 insert_data["sold_auctions"][self.realm_id][x]
                                 for x in range(len(insert_data["sold_auctions"][self.realm_id]))
                                 if insert_data["sold_auctions"][self.realm_id][x].auction.Item.id == self.auction.Item.id
-                            ]
+                        ]
 
         if isValidSoldAuction(live_data, self, auctions_to_check, logger):
             insert_data["sold_auctions"][self.realm_id].append(self)
