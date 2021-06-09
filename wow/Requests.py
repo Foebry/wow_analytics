@@ -182,8 +182,27 @@ class Request():
         except requests.exceptions.ConnectionError:
                 return self.reconnect(self.getPetsIndex, logger)
 
-        return self.handleResponse(response, self.getPetsIndex, logger, logger, ('pets',))
+        return self.handleResponse(response, self.getPetsIndex, (logger), logger, ('pets',))
 
+
+    def getRealms(self, logger):
+        endpoint = "search/realm"
+
+        try: response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
+        except requests.exceptions.ConnectionError:
+            return self.reconnect(self.getRealms, logger)
+
+        pages = self.handleResponse(response, self.getRealms, (logger,), logger, ("pageCount",))
+        result = []
+
+        for page in range(pages):
+            endpoint = "https://eu.api.blizzard.com/data/wow/search/realm?namespace=dynamic-eu&locale=en_GB&orderby=id&_page={}&access_token={}".format(page+1, self.access_token)
+            response = requests.get(endpoint)
+            print(response)
+
+            result += self.handleResponse(response, self.getRealms, (logger), logger, ("results",))
+
+        return result
 
 
     def reconnect(self, func, args):

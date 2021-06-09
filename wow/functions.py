@@ -755,7 +755,7 @@ def setLiveData(realm_id, live_data, db, logger, request):
     logger.log(msg=msg)
 
     # set auctions
-    border = datetime.datetime.now() - datetime.timedelta(hours=48)
+    border = datetime.datetime.now() - datetime.timedelta(hours=49)
     query = """
                 select * from auctionhouses
                    where not auction_id in (
