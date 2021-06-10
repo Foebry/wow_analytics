@@ -8,3 +8,5 @@ __pycache__
 /tests/
 /env
 config.py
+testing.py
+realms.txt
