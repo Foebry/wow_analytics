@@ -1,0 +1,23 @@
+DATABASE = {
+    'host': '123.456.789',
+    'user': 'user',
+    'password': 'password',
+    'schema': 'schema',
+    'schema-test': 'test',
+    'restraint': 1000,
+    'type': 'type'
+}
+
+
+CREDENTIALS = {
+    'client_id': 'your_client_id',
+    'client_secret': 'your_client_secret',
+}
+
+
+REALMS = {
+    realm_id: {
+        'name': "Realm name",
+        "file": "path_to_export_file_in_wow_addons_folder.lua",
+    }
+}
