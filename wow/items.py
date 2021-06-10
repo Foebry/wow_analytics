@@ -47,7 +47,8 @@ class Item:
             self.id = _id
             self.Pet = None
             self.Mount = None
-            if self.setData(logger, live_data, insert_data, update_data, request, pet_data):
+            status, data = self.setData(logger, live_data, insert_data, update_data, request, pet_data)
+            if status:
                 new_pet = self.id == 82800 and self.pet_id not in live_data["pets"]
                 existing_pet = self.id == 82800 and self.pet_id in live_data["pets"]
                 new_class = self.class_id not in live_data["classes"]
@@ -82,8 +83,28 @@ class Item:
 
                 elif existing_subclass: self.Subclass = live_data["classes"][self.class_id].subclasses[self.subclass_id]
 
+                self.insert(insert_data, logger)
+                return
+
+
+            if status == False:
+                logger.log(True, msg="Encountered an item without data from api")
+                self.id = data["id"]
+                self.pet_id = data["pet_id"]
+                self.mount_id = data["mount_id"]
+                self.name = ""
+                self.level = data["level"]
+                self.quality = ""
+                self.class_id = 0
+                self.subclass_id = 0
+                self.type = ""
+                self.subtype = ""
+                self.sold = 0.0
+                self.price = 0.0
+                self.mean_price = 0.0
 
                 self.insert(insert_data, logger)
+                return
 
 
     def setData(self, logger, live_data, insert_data, update_data, request, pet_data, test=False):
@@ -127,7 +148,10 @@ class Item:
             if test: return data
 
             self.__init__(logger, live_data, insert_data, update_data, request, **data)
-            return True
+            return True, data
+
+        data = {"id":self.id, "pet_id":0, "mount_id":0, "level":0}
+        return False, data
 
 
     def insert(self, insert_data, logger):
