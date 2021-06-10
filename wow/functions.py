@@ -627,7 +627,8 @@ def setLiveItem(db, live_data, item_data, logger):
                 "_id":_id, "pet":{"_id":pet_id}, "mount":{"_id":mount_id}, "level":level,
                 "name":name, "quality":quality, "item_class":item_class,
                 "item_subclass":item_subclass, "type":type, "subtype":subtype,
-                "mean_price":mean_price, "sold":sold, "price":price
+                "mean_price":mean_price, "sold":sold, "price":price,
+                "Class": None, "Subclass": None, "Pet": None, "Mount": None
             }
 
     is_item = pet_id == 0 and mount_id == 0
@@ -643,17 +644,13 @@ def setLiveItem(db, live_data, item_data, logger):
     if existing_subclass: kwargs["Subclass"] = live_data["classes"][item_class].subclasses[item_subclass]
 
     if is_item:
-        kwargs["Pet"] = None
-        kwargs["Mount"] = None
         live_data["items"][_id] = Item(logger, **kwargs)
 
     elif existing_pet:
         kwargs["Pet"] = live_data["pets"][pet_id]
-        kwargs["Mount"] = None
         live_data["items"][_id][pet_id] = Item(logger, **kwargs)
 
     elif existing_mount:
-        kwargs["Pet"] = None
         kwargs["Mount"] = live_data["mounts"][mount_id]
         live_data["items"][_id] = Item(logger, **kwargs)
 
