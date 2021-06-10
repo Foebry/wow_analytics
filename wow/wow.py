@@ -12,7 +12,7 @@ def setup(test):
     from databases.Database import Database
     from logger.Logger import Logger
     from realms import Realm
-    from config import REALMS, DATABASE, DATABASE_TEST
+    from config import REALMS, DATABASE
 
     logger = Logger(os.getcwd(), "d")
 
@@ -21,12 +21,7 @@ def setup(test):
     logger.log(msg="*"*65+"Started new session!"+"*"*65, timestamped=False, level_display=False)
     logger.log(msg="*"*150, timestamped=False, level_display=False)
 
-    if test:
-        db = Database(DATABASE_TEST, logger)
-        realms = [Realm(_id, REALMS[_id], db, logger) for _id in REALMS]
-        return logger, realms, db
-
-    db = Database(DATABASE, logger)
+    db = Database(DATABASE, logger, test)
     realms = [Realm(_id, REALMS[_id], db, logger) for _id in REALMS]
 
     return logger, realms, db
