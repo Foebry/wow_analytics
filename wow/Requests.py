@@ -4,13 +4,15 @@ import requests
 
 class Request():
     """ """
-    def __init__(self, data, logger):
+    def __init__(self, data, db, logger):
         """Request constructor"""
         self.client_id = data['client_id']
         self.client_secret = data['client_secret']
         self.access_token = None
         self.endpoint = None
-        self.setAccessToken(logger)
+        self.database = db
+        self.logger = logger
+        self.setAccessToken()
 
 
 
@@ -20,7 +22,7 @@ class Request():
 
 
 
-    def setAccessToken(self, logger):
+    def setAccessToken(self):
         """getting access_token"""
 
         # setting required data
@@ -34,15 +36,15 @@ class Request():
         # making request
         try: response = requests.post(endpoint, data=data)
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getAccesToken, logger, logger)
+            return self.reconnect(self.getAccesToken)
 
         # checking response
-        self.access_token = self.handleResponse(response, self.setAccessToken, logger, logger, ('access_token',))
+        self.access_token = self.handleResponse(response, self.setAccessToken, ('access_token',))
         self.endpoint = self.setEndpoint()
 
 
 
-    def getAuctionData(self, realm, update_data, db, logger):
+    def getAuctionData(self, realm, update_data):
         """getting auction data"""
         endpoint = "connected-realm/{}/auctions".format(realm.id)
 
@@ -52,17 +54,17 @@ class Request():
         try:
             response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getAuctionData, (realm, update_data, db, logger))
+            return self.reconnect(self.getAuctionData, (realm, update_data))
 
 
-        auctions = self.handleResponse(response, self.getAuctionData, (realm, update_data, db, logger), logger, ('auctions',))
+        auctions = self.handleResponse(response, self.getAuctionData, (realm, update_data), ('auctions',))
 
         if auctions:
             if not 'last-modified' in response.headers:
                 logger.log(True, msg=response.headers)
                 from wow import wait
                 wait(60)
-                return self.getAuctionData(realm, update_data, db, logger)
+                return self.getAuctionData(realm, update_data)
             if response.headers['last-modified'] == realm.last_modified:
                 return []
 
@@ -77,122 +79,122 @@ class Request():
 
 
 
-    def getItemData(self, _id, logger):
+    def getItemData(self, _id):
         """getting item data"""
         endpoint = "item/{}".format(_id)
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getItemData, (_id, logger))
+            return self.reconnect(self.getItemData, (_id,))
         except requests.exceptions.ChunkedEncodingError:
             print("ChunkedEncodingError for item {}".format(_id))
             quit()
 
-        return self.handleResponse(response, self.getItemData, (_id, logger), logger)
+        return self.handleResponse(response, self.getItemData, (_id,))
 
 
 
-    def getClassData(self, _id, logger):
+    def getClassData(self, _id):
         """getting class data"""
         endpoint = "item-class/{}".format(_id)
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getClassData, (_id, logger))
+            return self.reconnect(self.getClassData, (_id,))
 
-        return self.handleResponse(response, self.getClassData, (_id, logger), logger)
+        return self.handleResponse(response, self.getClassData, (_id,))
 
 
-    def getClassesIndex(self, logger):
+    def getClassesIndex(self):
         """Retrieving all item_classes"""
         endpoint = "item-class/index"
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getClassData, (logger))
+            return self.reconnect(self.getClassData, None)
 
-        return self.handleResponse(response, self.getClassesIndex, (logger), logger, ("item_classes",))
+        return self.handleResponse(response, self.getClassesIndex, None, ("item_classes",))
 
 
 
-    def getSubclassData(self, class_id, _id, logger):
+    def getSubclassData(self, class_id, _id):
         """getting subclass data"""
         endpoint = "item-class/{}/item-subclass/{}".format(class_id, _id)
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getSubclassData, (class_id, _id, logger))
+            return self.reconnect(self.getSubclassData, (class_id, _id))
 
-        return self.handleResponse(response, self.getSubclassData, (class_id, _id, logger), logger)
+        return self.handleResponse(response, self.getSubclassData, (class_id, _id))
 
 
 
-    def getPetData(self, _id, logger):
+    def getPetData(self, _id):
         """getting pet data"""
         endpoint = "pet/{}".format(_id)
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getPetData, (_id, logger))
+            return self.reconnect(self.getPetData, (_id,))
 
-        return self.handleResponse(response, self.getPetData, (_id, logger), logger)
+        return self.handleResponse(response, self.getPetData, (_id,))
 
 
 
-    def getMountData(self, _id, logger):
+    def getMountData(self, _id):
         """getting mount data"""
         endpoint = "mount/{}".format(_id)
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getMountData, (_id, logger))
+            return self.reconnect(self.getMountData, (_id,))
 
-        return self.handleResponse(response, self.getMountData, (_id, logger), logger)
+        return self.handleResponse(response, self.getMountData, (_id,))
 
 
 
-    def getMount_id_by_name(self, name, logger):
+    def getMount_id_by_name(self, name):
         endpoint = "search/mount"
         extra = "&name.en_US={}&orderby=id&_page=1".format(name.replace(" ", "%20"))
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", extra))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getMount_id_by_name, (name, logger))
+            return self.reconnect(self.getMount_id_by_name, (name,))
 
-        _id = self.handleResponse(response, self.getMount_id_by_name, (name, logger), logger, ('results', 0, 'data', 'id'))
+        _id = self.handleResponse(response, self.getMount_id_by_name, (name,), ('results', 0, 'data', 'id'))
 
         return _id
 
 
-    def getMountsIndex(self, logger):
+    def getMountsIndex(self):
         endpoint = "mount/index"
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getMountsIndex, (logger))
+            return self.reconnect(self.getMountsIndex, None)
 
-        return self.handleResponse(response, self.getMountsIndex, (logger), logger, ("mounts",))
+        return self.handleResponse(response, self.getMountsIndex, None, ("mounts",))
 
 
 
-    def getPetsIndex(self, logger):
+    def getPetsIndex(self):
         endpoint = "pet/index"
 
         try: response = requests.get(self.endpoint.format(endpoint, "static", ""))
         except requests.exceptions.ConnectionError:
-                return self.reconnect(self.getPetsIndex, logger)
+                return self.reconnect(self.getPetsIndex, None)
 
-        return self.handleResponse(response, self.getPetsIndex, (logger), logger, ('pets',))
+        return self.handleResponse(response, self.getPetsIndex, None, ('pets',))
 
 
-    def getRealms(self, logger):
+    def getRealms(self):
         endpoint = "search/realm"
 
         try: response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getRealms, logger)
+            return self.reconnect(self.getRealms, None)
 
-        pages = self.handleResponse(response, self.getRealms, (logger,), logger, ("pageCount",))
+        pages = self.handleResponse(response, self.getRealms, None, ("pageCount",))
         result = []
 
         for page in range(pages):
@@ -200,12 +202,13 @@ class Request():
             response = requests.get(endpoint)
             print(response)
 
-            result += self.handleResponse(response, self.getRealms, (logger), logger, ("results",))
+            result += self.handleResponse(response, self.getRealms, None, ("results",))
 
         return result
 
 
     def reconnect(self, func, args):
+        self.database.optimize()
         while True:
             try:
                 if requests.get("https://google.com"): return func(*args)
@@ -233,7 +236,7 @@ class Request():
 
 
 
-    def handleResponse(self, response, func, args, logger, keys=None):
+    def handleResponse(self, response, func, args, keys=None):
         success = response.status_code == 200
         unauthorized = response.status_code == 401
         not_found = response.status_code == 404
@@ -252,7 +255,7 @@ class Request():
             self.waitTillResponsive(unresponsive)
             return func(*args)
 
-        else: logger.log(msg=f'{response.status_code} - {response}')
+        else: self.logger.log(msg=f'{response.status_code} - {response}')
 
 
 

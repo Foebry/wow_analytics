@@ -41,13 +41,13 @@ def wait(duration):
 
 
 
-def init(realms=None, start=False, live_data=None, realm=None):
+def init(db, realms=None, start=False, live_data=None, realm=None):
     from functions import setLiveData
     from Requests import Request
     from config import CREDENTIALS
 
     if start:
-        request = Request(CREDENTIALS, logger)
+        request = Request(CREDENTIALS, db, logger)
         live_data = {"auctions":{}, "items":{82800:{}}, "classes":{}, "pets":{}, "mounts":{}}
         for realm in realms: setLiveData(realm.id, live_data, db, logger, request)
         temp = live_data["auctions"][realm.id].copy()
@@ -67,23 +67,23 @@ def init(realms=None, start=False, live_data=None, realm=None):
 
 
 def main():
-    live_data, insert_data, update_data, previous_auctions, request, previous_response = init(realms, start=True)
+    live_data, insert_data, update_data, previous_auctions, request, previous_response = init(db, realms, start=True)
 
     while True:
         for realm in realms:
 
             # make request
-            response = request.getAuctionData(realm, update_data, db, logger)
+            response = request.getAuctionData(realm, update_data)
             if response:
                 logger.log(msg="\n\n"+"*"*100, timestamped=False, level_display=False)
                 logger.log(msg=f"New data of {len(response)} auctions")
 
                 # set auction data
-                setAuctionData(realm.id, response, live_data, insert_data, update_data, previous_auctions, request, db, logger)
+                setAuctionData(realm.id, response, live_data, insert_data, update_data, previous_auctions, request)
 
                 # insert data & update data
-                insertData(db, live_data, insert_data, update_data, previous_auctions, realm.id, logger)
-                updateData(db, update_data, realm.id, logger)
+                insertData(db, live_data, insert_data, update_data, previous_auctions, realm.id)
+                updateData(db, update_data, realm.id)
                 # realm.export(insert_data['items'])
 
                 _, insert_data, update_data, previous_auctions, _, _ = init(realm=realm, live_data=live_data)
