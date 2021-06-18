@@ -10,3 +10,4 @@ __pycache__
 config.py
 testing.py
 realms.txt
+getRealms.py

@@ -39,12 +39,12 @@ class Request():
             return self.reconnect(self.getAccesToken)
 
         # checking response
-        self.access_token = self.handleResponse(response, self.setAccessToken, ('access_token',))
+        self.access_token = self.handleResponse(response, self.setAccessToken, None, ('access_token',))
         self.endpoint = self.setEndpoint()
 
 
 
-    def getAuctionData(self, realm, update_data):
+    def getAuctionData(self, realm, operation):
         """getting auction data"""
         endpoint = "connected-realm/{}/auctions".format(realm.id)
 
@@ -54,32 +54,33 @@ class Request():
         try:
             response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
         except requests.exceptions.ConnectionError:
-            return self.reconnect(self.getAuctionData, (realm, update_data))
+            return self.reconnect(self.getAuctionData, (realm, operation))
 
 
-        auctions = self.handleResponse(response, self.getAuctionData, (realm, update_data), ('auctions',))
+        auctions = self.handleResponse(response, self.getAuctionData, (realm, operation), ('auctions',))
 
         if auctions:
             if not 'last-modified' in response.headers:
                 logger.log(True, msg=response.headers)
                 from wow import wait
                 wait(60)
-                return self.getAuctionData(realm, update_data)
+                return self.getAuctionData(realm, operation)
             if response.headers['last-modified'] == realm.last_modified:
                 return []
 
             realm.last_modified = response.headers['last-modified']
 
-            if 'realms' in update_data:
-                update_data["realms"].append(realm)
+            if 'realms' in operation.update_data:
+                operation.update_data["realms"].append(realm)
                 return auctions
 
-            update_data['realms'] = [realm]
+            operation.update_data['realms'] = [realm]
             return auctions
 
 
 
     def getItemData(self, _id):
+        self.logger.log(debug="True", msg="Requesting item data for item {}".format(_id))
         """getting item data"""
         endpoint = "item/{}".format(_id)
 
@@ -189,7 +190,6 @@ class Request():
 
     def getRealms(self):
         endpoint = "search/realm"
-
         try: response = requests.get(self.endpoint.format(endpoint, "dynamic", ""))
         except requests.exceptions.ConnectionError:
             return self.reconnect(self.getRealms, None)
@@ -200,7 +200,6 @@ class Request():
         for page in range(pages):
             endpoint = "https://eu.api.blizzard.com/data/wow/search/realm?namespace=dynamic-eu&locale=en_GB&orderby=id&_page={}&access_token={}".format(page+1, self.access_token)
             response = requests.get(endpoint)
-            print(response)
 
             result += self.handleResponse(response, self.getRealms, None, ("results",))
 

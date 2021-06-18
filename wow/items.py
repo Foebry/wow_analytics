@@ -10,17 +10,17 @@ from mounts import Mount
 
 class Item:
     """Item"""
-    def __init__(self, logger, live_data=None, insert_data=None, update_data=None, request=None, _id=None, pet_data=None, test=False, **kwargs):
+    def __init__(self, operation=None, request=None, _id=None, pet_data=None, test=False, **kwargs):
         """constructor for Item class"""
 
-        insert_new_item = insert_data is not None and not kwargs
-        insert_item = insert_data is not None and kwargs
+        insert_new_item = operation is not None and not kwargs
+        insert_item = operation is not None and kwargs
         test_item = test
-        rebuild_item = insert_data is None and kwargs
+        rebuild_item = operation is None and kwargs
 
         if test_item:
             self.id = _id
-            self.kwargs = self.setData(logger, None, None, None, request, None, test=True)
+            self.kwargs = self.setData(operation, request, None, test=True)
 
         elif rebuild_item or insert_item:
             self.pet_id = kwargs["pet"]["_id"]
@@ -47,48 +47,48 @@ class Item:
             self.id = _id
             self.Pet = None
             self.Mount = None
-            status, data = self.setData(logger, live_data, insert_data, update_data, request, pet_data)
+            status, data = self.setData(operation, request, pet_data)
             if status:
-                new_pet = self.id == 82800 and self.pet_id not in live_data["pets"]
-                existing_pet = self.id == 82800 and self.pet_id in live_data["pets"]
-                new_class = self.class_id not in live_data["classes"]
-                existing_class = self.class_id in live_data["classes"]
-                new_subclass = self.class_id not in live_data["classes"] or self.subclass_id not in live_data["classes"][self.class_id].subclasses
-                existing_subclass = self.class_id in live_data["classes"] and self.subclass_id in live_data["classes"][self.class_id].subclasses
-                new_mount = not self.mount_id == 0 and self.mount_id not in live_data["mounts"]
-                existing_mount = not self.mount_id == 0 and self.mount_id in live_data["mounts"]
+                new_pet = self.id == 82800 and self.pet_id not in operation.live_data["pets"]
+                existing_pet = self.id == 82800 and self.pet_id in operation.live_data["pets"]
+                new_class = self.class_id not in operation.live_data["classes"]
+                existing_class = self.class_id in operation.live_data["classes"]
+                new_subclass = self.class_id not in operation.live_data["classes"] or self.subclass_id not in operation.live_data["classes"][self.class_id].subclasses
+                existing_subclass = self.class_id in operation.live_data["classes"] and self.subclass_id in operation.live_data["classes"][self.class_id].subclasses
+                new_mount = not self.mount_id == 0 and self.mount_id not in operation.live_data["mounts"]
+                existing_mount = not self.mount_id == 0 and self.mount_id in operation.live_data["mounts"]
 
                 if new_pet:
-                    self.Pet = Pet(logger, insert_data, request, self.pet_id)
-                    live_data["pets"][self.pet_id] = self.Pet
+                    self.Pet = Pet(operation, request, self.pet_id)
+                    operation.live_data["pets"][self.pet_id] = self.Pet
 
                 elif existing_pet:
-                    self.Pet = live_data["pets"][self.pet_id]
+                    self.Pet = operation.live_data["pets"][self.pet_id]
 
                 elif new_mount:
-                    self.Mount = Mount(logger, insert_data, request, self.mount_id)
-                    live_data["mounts"][self.mount_id] = self.Mount
+                    self.Mount = Mount(operation, request, self.mount_id)
+                    operation.live_data["mounts"][self.mount_id] = self.Mount
 
-                elif existing_mount: self.Mount = live_data["mounts"][self.mount_id]
+                elif existing_mount: self.Mount = operation.live_data["mounts"][self.mount_id]
 
                 if new_class:
-                    self.Class = Class(logger, insert_data, request, self.class_id)
-                    live_data["classes"][self.class_id] = self.Class
+                    self.Class = Class(operation, request, self.class_id)
+                    operation.live_data["classes"][self.class_id] = self.Class
 
-                elif existing_class: self.Class = live_data["classes"][self.class_id]
+                elif existing_class: self.Class = operation.live_data["classes"][self.class_id]
 
                 if new_subclass:
-                    self.Subclass = Subclass(logger, insert_data, request, self.class_id, self.subclass_id)
-                    live_data["classes"][self.class_id].subclasses[self.subclass_id] = self.Subclass
+                    self.Subclass = Subclass(operation, request, self.class_id, self.subclass_id)
+                    operation.live_data["classes"][self.class_id].subclasses[self.subclass_id] = self.Subclass
 
-                elif existing_subclass: self.Subclass = live_data["classes"][self.class_id].subclasses[self.subclass_id]
+                elif existing_subclass: self.Subclass = operation.live_data["classes"][self.class_id].subclasses[self.subclass_id]
 
-                self.insert(insert_data, logger)
+                self.insert(operation)
                 return
 
 
             if status == False:
-                logger.log(True, msg="Encountered an item without data from api")
+                operation.logger.log(True, msg="Encountered an item without data from api")
                 self.id = data["id"]
                 self.pet_id = data["pet_id"]
                 self.mount_id = data["mount_id"]
@@ -103,12 +103,12 @@ class Item:
                 self.price = 0.0
                 self.mean_price = 0.0
 
-                self.insert(insert_data, logger)
+                self.insert(operation)
                 return
 
 
-    def setData(self, logger, live_data, insert_data, update_data, request, pet_data, test=False):
-        data = request.getItemData(self.id, logger)
+    def setData(self, operation, request, pet_data, test=False):
+        data = request.getItemData(self.id)
         is_pet = self.id == 82800
 
         if data:
@@ -130,10 +130,10 @@ class Item:
                 data["pet"] = {"_id":pet_data["_id"]}
                 data["quality"] = qualities[pet_data["quality"]]
                 data["level"] = pet_data["level"]
-                data["name"] = request.getPetData(pet_data["_id"], logger)["name"]
+                data["name"] = request.getPetData(pet_data["_id"])["name"]
 
             elif is_mount:
-                data["mount"] = {"_id":request.getMount_id_by_name(data["name"], logger)}
+                data["mount"] = {"_id":request.getMount_id_by_name(data["name"])}
                 data["pet"] = {"_id":0}
 
             else:
@@ -147,43 +147,43 @@ class Item:
 
             if test: return data
 
-            self.__init__(logger, live_data, insert_data, update_data, request, **data)
+            self.__init__(operation, request, **data)
             return True, data
 
         data = {"id":self.id, "pet_id":0, "mount_id":0, "level":0}
         return False, data
 
 
-    def insert(self, insert_data, logger):
+    def insert(self, operation):
         """adding Item to be inserted"""
-        set_items_insert_data = "items" in insert_data
-        unset_items_insert_data = "items" not in insert_data
+        set_items_insert_data = "items" in operation.insert_data
+        unset_items_insert_data = "items" not in operation.insert_data
 
-        if set_items_insert_data: insert_data["items"].append(self)
+        if set_items_insert_data: operation.insert_data["items"].append(self)
 
-        elif unset_items_insert_data: insert_data["items"] = [self]
+        elif unset_items_insert_data: operation.insert_data["items"] = [self]
 
 
-    def update(self, update_data, insert_data, logger):
+    def update(self, operation):
         """update data for item if mean_price changes"""
-        unset_items_update_data = "items" not in update_data
-        new_item_to_update = not unset_items_update_data and self not in update_data["items"]
+        unset_items_update_data = "items" not in operation.update_data
+        new_item_to_update = not unset_items_update_data and self not in operation.update_data["items"]
 
         # add items to be updated
         if unset_items_update_data:
-            update_data["items"] = [self]
+            operation.update_data["items"] = [self]
 
         elif new_item_to_update:
-            update_data["items"].append(self)
+            operation.update_data["items"].append(self)
 
 
-    def updateMean(self, soldauction, update_data, insert_data, logger):
+    def updateMean(self, soldauction, operation):
         try: self.sold += soldauction.quantity
         except:
-            logger.log(True, "item {} has not attribute sold".format(self.id))
+            operation.logger.log(True, "item {} has not attribute sold".format(self.id))
         self.price += soldauction.buyout
         temp_mean = self.price / self.sold
         new_mean = temp_mean != self.mean_price
         if new_mean:
             self.mean_price = temp_mean
-            self.update(update_data, insert_data, logger)
+            self.update(operation)
